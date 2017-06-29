@@ -1,0 +1,7 @@
+testgit.py
+testgit.egg-info/PKG-INFO
+testgit.egg-info/SOURCES.txt
+testgit.egg-info/dependency_links.txt
+testgit.egg-info/entry_points.txt
+testgit.egg-info/requires.txt
+testgit.egg-info/top_level.txt
