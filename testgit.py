@@ -1,6 +1,6 @@
 import subprocess 
 from github import Github 
-
+import yaml
 import click
 
 
@@ -26,27 +26,45 @@ def hub(command,num):
 		username, repo = arguments.split("/")
 		
 		try:
-			g = Github('')#authentification token goes here
+			with open(".config/git-hub.yaml") as stream:
+				yaml_file = str(yaml.load(stream))
+				token = yaml_file.split("=")[1].strip()
 		except:
-			need 
+			print("Needs an authentification token in ~/.config/git-hub.yaml")
+			print("file simply says:")
+			print("token = iejfjlkajdf")
+			print("'iejfjlkajdf' being the token name from github ")
 
 		try:
+			g = Github(token)#authentification token goes here
 			pr = g.get_user(username).get_repo(repo).get_pull(num)
 			print(pr.body)
 		except:
-			print("no pr found")
+			Print("The authentification token is not valid")
+			print("or there is no pr with number" + str(num))
 		
+
 
 	else:
 		print("invalid command")
 
 #trying to use subprocess
-process = subprocess.Popen("git remote -v", stdout=subprocess.PIPE)
-name = str(process.stdout.read())
-almost = name.split(" ", 1)[0] #splits by first space to get the fetch url
-url = almost.split("\\t", 1)[1]#takes out information("origin") before url
-arguments = url.split(".com/")[1]
-arguments = arguments[:len(arguments) - 4] #takes out ".git"
-username, repo = arguments.split("/")
+# process = subprocess.Popen("git remote -v", stdout=subprocess.PIPE)
+# name = str(process.stdout.read())
+# almost = name.split(" ", 1)[0] #splits by first space to get the fetch url
+# url = almost.split("\\t", 1)[1]#takes out information("origin") before url
+# arguments = url.split(".com/")[1]
+# arguments = arguments[:len(arguments) - 4] #takes out ".git"
+# username, repo = arguments.split("/")
 
 
+
+		# try:
+		# 	#pr = g.get_user(username).get_repo(repo).get_pull(num)
+		# 	#print(pr.body)
+		# 	repo = g.get_user(username).get_repo(repo)
+		# 	print(repo.description)
+		# except:
+		# 	print("no pr with number " + str(num))
+		# 	repo = g.get_user(username).get_repo(repo)
+		
