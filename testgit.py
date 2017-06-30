@@ -1,4 +1,5 @@
 
+import subprocess
 from github import Github 
 
 import click
@@ -18,8 +19,12 @@ def hub(command,num):
 		g = Github('')#authentification token goes here
 		pr = g.get_user("machine-shop").get_repo("music-features").get_pull(num)
 		print(pr.body)
+
 	else:
 		print("invalid command")
 
+#trying to use subprocess
+hello = subprocess.run("git remote -v")
+print(hello)
 
 
