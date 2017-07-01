@@ -17,7 +17,7 @@ def hub(command,num):
 	if command == "branch":
 		print("hello")
 		subprocess.Popen("git branch testing")
-		print("tring stuff")
+		print("trying stuff")
 
 
 	elif command == "pr":
@@ -44,8 +44,11 @@ def hub(command,num):
 
 		try:
 			g = Github(token)#authentification token goes here
-			pr = g.get_user(username).get_repo(repo).get_pull(num)
-			print(pr.body)
+			# pr = g.get_user(username).get_repo(repo).get_pull(num)
+			# print(pr.body)
+			pr = g.get_user('machine-shop').get_repo('music-features').get_pull(num).base.repo
+			print(pr.git_url)
+
 		except:
 			print("The authentification token is not valid")
 			print("or there is no pr with number" + str(num))
