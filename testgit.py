@@ -13,7 +13,14 @@ def cli():
 @click.argument("num", default = 0)
 #activates when user types in cmd "testgit hub pr"
 def hub(command,num):
-	if command == "pr":
+
+	if command == "branch":
+		print("hello")
+		subprocess.Popen("git branch testing")
+		print("tring stuff")
+
+
+	elif command == "pr":
 		print("pulling down pr " + str(num) + ":" )
 
 		#runs git and gets user and repo.
@@ -40,7 +47,7 @@ def hub(command,num):
 			pr = g.get_user(username).get_repo(repo).get_pull(num)
 			print(pr.body)
 		except:
-			Print("The authentification token is not valid")
+			print("The authentification token is not valid")
 			print("or there is no pr with number" + str(num))
 		
 
@@ -67,4 +74,4 @@ def hub(command,num):
 		# except:
 		# 	print("no pr with number " + str(num))
 		# 	repo = g.get_user(username).get_repo(repo)
-		
+
