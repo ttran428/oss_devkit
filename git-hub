@@ -13,11 +13,8 @@ def cli():
 @cli.command()
 @click.argument("command", default = "")
 @click.argument("num", default = 0)
-#activates when user types in cmd "testgit hub pr"
 def hub(command,num):
 	if command == "pr":
-		print("pulling down pr " + str(num) + ":" )
-		print()
 		#runs git and gets user and repo of current folder.
 		process = subprocess.Popen("git remote -v", stdout=subprocess.PIPE)
 		remotes = str(process.stdout.read())
@@ -39,27 +36,31 @@ def hub(command,num):
 			print("'abc123' being the token name from github ")
 
 		#gets pr and runs command.
-		#try:
-		g = Github(token)
-		pr = g.get_user(username).get_repo(repo).get_pull(num)
-		label = pr.head.label
-		other_user, branch = label.split(":")
-		print("git remote add " + other_user + " git@github.com:" + other_user + "/" + repo)
-		subprocess.Popen("git remote add " + other_user + " git@github.com:" + other_user + "/" + repo)
-		print("git fetch " + other_user)
-		p = subprocess.Popen("git fetch " + other_user, stdout = subprocess.PIPE)
-		p.stdout.read()
-		subprocess.Popen("git checkout -b pr/" + str(num) + " " + other_user + "/" + branch)
-		print("git checkout -b pr/" + str(num) + " " + other_user + "/" + branch)
+		try:
+			g = Github(token)
+			pr = g.get_user(username).get_repo(repo).get_pull(num)
+			label = pr.head.label
+			other_user, branch = label.split(":")
+			remote_name = "\\n" + other_user + "\\t"
+			if remote_name not in remotes: 
+				print("git remote add " + other_user + " git@github.com:" + other_user + "/" + repo)
+				p = subprocess.Popen("git remote add " + other_user + " git@github.com:" + other_user + "/" + repo)
+				p.communicate()
+			#print("git fetch " + other_user)
+			p = subprocess.Popen("git fetch " + other_user, stdout = subprocess.PIPE)
+			p.stdout.read()	
+			subprocess.Popen("git checkout -b pr/" + str(num) + " " + other_user + "/" + branch)
+			# print("git checkout -b pr/" + str(num) + " " + other_user + "/" + branch)
 		
-		# except:
-		# 	print("The authentification token is not valid")
-		# 	print("or there is no pr with number" + str(num))
+		except:
+			print("The authentification token is not valid")
+			print("or there is no pr with number" + str(num))
 		
 
 
 	else:
 		print("invalid command")
+
 
 if __name__ == "__main__":
 	hub()	
