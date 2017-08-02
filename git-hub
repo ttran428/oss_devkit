@@ -53,11 +53,8 @@ def hub(command,num):
 			print("The authentification token is not valid")
 			print("or there is no pr with number" + str(num))
 		
-
-
 	else:
 		print("invalid command")
-
 
 if __name__ == "__main__":
 	hub()	
