@@ -43,14 +43,11 @@ def hub(command,num):
 			other_user, branch = label.split(":")
 			remote_name = "\\n" + other_user + "\\t"
 			if remote_name not in remotes: 
-				print("git remote add " + other_user + " git@github.com:" + other_user + "/" + repo)
 				p = subprocess.Popen("git remote add " + other_user + " git@github.com:" + other_user + "/" + repo)
 				p.communicate()
-			#print("git fetch " + other_user)
 			p = subprocess.Popen("git fetch " + other_user, stdout = subprocess.PIPE)
 			p.stdout.read()	
 			subprocess.Popen("git checkout -b pr/" + str(num) + " " + other_user + "/" + branch)
-			# print("git checkout -b pr/" + str(num) + " " + other_user + "/" + branch)
 		
 		except:
 			print("The authentification token is not valid")
