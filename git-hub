@@ -1,74 +1,75 @@
 #!/usr/bin/env python
-import subprocess 
-import github 
+import subprocess
+import github
 import yaml
 import click
-import getpass
 import sys
 
 
 def pr(num):
-#runs git and gets user and repo of current folder.
-	process = subprocess.Popen("git remote -v", stdout=subprocess.PIPE)
-	remotes = str(process.stdout.read())
-	url = remotes.split(" ", 1)[0] #splits by first space to get the fetch url
-	url = url.split("\\t", 1)[1]#takes out information("origin") before url
-	arguments = url.split(".com:")[1] #gets just the username/repo.git
-	arguments = arguments[:len(arguments) - 4] #takes out ".git"
-	username, repo = arguments.split("/")
-	
-	#gets token from config folder.
-	try:
-		with open(".config/git-hub.yaml") as stream:
-			yaml_file = str(yaml.load(stream))
-			token = yaml_file.split("=")[1].strip()
-	except (IndexError,FileNotFoundError) as e:
-		print("Needs an authentification token in ~/.config/git-hub.yaml")
-		print("file simply says:")
-		print("token = abc123")
-		print("Visit https://help.github.com/articles/creating-a-personal-access-token-for-the-command-line/")
-		print("to learn how to generate a token.")
-		sys.exit(1)
+    # runs git and gets user and repo of current folder.
+    process = subprocess.Popen("git remote -v", stdout=subprocess.PIPE)
+    remotes = str(process.stdout.read())
+    url = remotes.split(" ", 1)[0]  # gets the fetch url
+    url = url.split("\\t", 1)[1]  # takes out extra info
+    arguments = url.split(".com:")[1]  # gets just the username/repo.git
+    arguments = arguments[:len(arguments) - 4]  # takes out ".git"
+    username, repo = arguments.split("/")
 
+    # gets token from config folder.
+    try:
+        with open(".config/git-hub.yaml") as stream:
+            yaml_file = str(yaml.load(stream))
+            token = yaml_file.split("=")[1].strip()
+    except (IndexError, FileNotFoundError) as e:
+        print("Needs an authentification token in ~/.config/git-hub.yaml")
+        print("file simply says:")
+        print("token = abc123")
+        print("""Visit https://help.github.com/articles/
+            creating-a-personal-access-token-for-the-command-line/""")
+        print("to learn how to generate a token.")
+        sys.exit(1)
 
-	#gets pr and runs command.
-	try:
-		g = github.Github(token)
-		pr = g.get_user(username).get_repo(repo).get_pull(num)
-		label = pr.head.label
-		other_user, branch = label.split(":")
-		remote_name = "\\n" + other_user + "\\t"
-		if remote_name not in remotes: 
-			p = subprocess.Popen(f'git remote add {other_user} git@github.com:{other_user}/{repo}')
-			print(f'git remote add {other_user} git@github.com:{other_user}/{repo}')
-			p.communicate()
-		p = subprocess.Popen(f'git fetch {other_user}', stdout = subprocess.PIPE)
-		print(f'git fetch {other_user}')
-		p.stdout.read()	
-		subprocess.Popen(f'git checkout -b pr/{num} {other_user}/{branch}')
-		print(f'git checkout -b pr/{num} {other_user}/{branch}')
-	
-	except github.GithubException as e:
-		print(e)
-		print(f'The authentification token is not valid or there is no pr with number {num}.')
-		sys.exit(1)
+    # gets pr and runs command.
+    try:
+        g = github.Github(token)
+        pr = g.get_user(username).get_repo(repo).get_pull(num)
+        label = pr.head.label
+        other_user, branch = label.split(":")
+        remote_name = "\\n" + other_user + "\\t"
+        if remote_name not in remotes:
+            p = subprocess.Popen(
+                f'git remote add {other_user} \
+                git@github.com:{other_user}/{repo}')
+            p.communicate()
+        p = subprocess.Popen(f'git fetch {other_user}', stdout=subprocess.PIPE)
+        p.stdout.read()
+        subprocess.Popen(f'git checkout -b pr/{num} {other_user}/{branch}')
+
+    except github.GithubException as e:
+        print(e)
+        print("The authentification token is not valid or ")
+        print(f'there is no pr with number {num}.')
+        sys.exit(1)
+
 
 @click.group()
 def cli():
-	pass
+    pass
+
 
 @cli.command()
-@click.argument("command", default = "")
-@click.argument("args", nargs= -1)
+@click.argument("command", default="")
+@click.argument("args", nargs=-1)
 def hub(command, args):
-	if command == "pr":
-		pr_num = int(args[0])
-		pr(pr_num)
-		
-	else:
-		print("invalid command")
-		sys.exit(1)
+    if command == "pr":
+        pr_num = int(args[0])
+        pr(pr_num)
+
+    else:
+        print("invalid command")
+        sys.exit(1)
+
 
 if __name__ == "__main__":
-	hub()	
-
+    hub()
