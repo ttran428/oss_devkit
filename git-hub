@@ -66,6 +66,9 @@ def hub(command, args):
         pr_num = int(args[0])
         pr(pr_num)
 
+    elif command == "push":
+        print("hello")
+
     else:
         print("invalid command")
         sys.exit(1)
