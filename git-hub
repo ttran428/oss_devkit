@@ -60,11 +60,14 @@ def pr(num):
         print(f'There is no pr with number {num}.')
         sys.exit(1)
 
+
 def push():
     with open("data.pickle", "rb") as f:
         data = pickle.load(f)
         other_user, pr, branch = data.split()
         subprocess.Popen(f'git push {other_user} {pr}:{branch}')
+        # should I delete the pickle file after? Or save it in a config file?
+
 
 @click.group()
 def cli():
