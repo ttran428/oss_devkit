@@ -5,6 +5,7 @@ import yaml
 import click
 import sys
 import textwrap
+import pickle
 
 
 def pr(num):
@@ -45,6 +46,9 @@ def pr(num):
         p = subprocess.Popen(f'git fetch {other_user}', stdout=subprocess.PIPE)
         p.stdout.read()
         subprocess.Popen(f'git checkout -b pr/{num} {other_user}/{branch}')
+        with open("data.pickle", "wb") as f:
+            data = f'{other_user} pr/{num} {branch}'
+            pickle.dump(data, f, pickle.HIGHEST_PROTOCOL)
 
     except github.BadCredentialsException as e:
         print(e)
@@ -56,6 +60,11 @@ def pr(num):
         print(f'There is no pr with number {num}.')
         sys.exit(1)
 
+def push():
+    with open("data.pickle", "rb") as f:
+        data = pickle.load(f)
+        other_user, pr, branch = data.split()
+        subprocess.Popen(f'git push {other_user} {pr}:{branch}')
 
 @click.group()
 def cli():
@@ -71,7 +80,7 @@ def hub(command, args):
         pr(pr_num)
 
     elif command == "push":
-        print("hello")
+        push()
 
     else:
         print("invalid command")
