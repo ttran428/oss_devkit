@@ -5,7 +5,7 @@ import yaml
 import click
 import sys
 import textwrap
-import pickle
+import json
 
 
 def pr(num):
@@ -46,9 +46,9 @@ def pr(num):
         p = subprocess.Popen(f'git fetch {other_user}', stdout=subprocess.PIPE)
         p.stdout.read()
         subprocess.Popen(f'git checkout -b pr/{num} {other_user}/{branch}')
-        with open("data.pickle", "wb") as f:
-            data = f'{other_user} pr/{num} {branch}'
-            pickle.dump(data, f, pickle.HIGHEST_PROTOCOL)
+        with open(".git_hub_cache", "w") as outfile:
+            data = {"user": other_user, "pr": f'pr/{num}', "branch": branch}
+            json.dump(data, outfile)
 
     except github.BadCredentialsException as e:
         print(e)
@@ -62,11 +62,19 @@ def pr(num):
 
 
 def push():
-    with open("data.pickle", "rb") as f:
-        data = pickle.load(f)
-        other_user, pr, branch = data.split()
-        subprocess.Popen(f'git push {other_user} {pr}:{branch}')
-        # should I delete the pickle file after? Or save it in a config file?
+    try:
+        with open(".git_hub_cache") as json_file:
+            data = json.load(json_file)
+            other_user = data["user"]
+            pr = data["pr"]
+            branch = data["branch"]
+            p = subprocess.Popen(
+                f'git push {other_user} {pr}:{branch}', stdout=subprocess.PIPE)
+            p.stdout.read()
+    except FileNotFoundError as e:
+        print(e)
+        print("This command must be used after git hub pr.")
+        sys.exit(1)
 
 
 @click.group()
