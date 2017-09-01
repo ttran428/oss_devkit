@@ -1,4 +1,4 @@
-#!/usr/bin/env python3
+#!/usr/bin/env python
 import subprocess
 import github
 import yaml
@@ -6,10 +6,26 @@ import click
 import sys
 import textwrap
 import json
+import os
 
 
 def pr(num):
-    # runs git and gets user and repo of current folder.
+    """Pulls down and checkout the branch of the pr.
+
+    This will run the following commands in the terminal:
+    "git remote add user git@github.com:user/repo",
+    "git fetch user",
+    "git checkout -b pr/num user/branch"
+
+    Parameters
+    ----------
+    num : integer
+        The number of the pull request.
+
+    Returns
+    -------
+    None
+    """
     process = subprocess.Popen("git remote -v", stdout=subprocess.PIPE)
     remotes = str(process.stdout.read())
     url = remotes.split(" ", 1)[0]  # gets the fetch url
@@ -20,7 +36,7 @@ def pr(num):
 
     # gets token from config folder.
     try:
-        with open(".config/git-hub.yaml") as stream:
+        with open(os.path.expanduser("~/.config/git-hub.yaml")) as stream:
             yaml_file = str(yaml.load(stream))
             token = yaml_file.split("=")[1].strip()
 
@@ -62,6 +78,20 @@ def pr(num):
 
 
 def push():
+    """Pushes changes back to a branch.
+
+    This will run the following command:
+    "git push user pr/num:branch"
+
+    Parameters
+    ----------
+    None 
+
+    Returns
+    -------
+    None
+
+    """
     try:
         with open(".git_hub_cache") as json_file:
             data = json.load(json_file)
