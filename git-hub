@@ -51,13 +51,14 @@ def pr(num):
         other_user, branch = label.split(":")
         remote_name = "\\n" + other_user + "\\t"
         if remote_name not in remotes:
-            p = subprocess.Popen(
-                ["git", "remote", "add", other_user,
-                f'git@github.com:{other_user}/{repo}'])
+            p = subprocess.Popen(["git", "remote", "add", other_user,
+                                 f'git@github.com:{other_user}/{repo}'])
             p.communicate()
-        p = subprocess.Popen(["git", "fetch", other_user], stdout=subprocess.PIPE)
+        p = subprocess.Popen(["git", "fetch", other_user],
+                             stdout=subprocess.PIPE)
         p.stdout.read()
-        subprocess.Popen(["git", "checkout", "-b", f'pr/{num}', f'{other_user}/{branch}'])
+        subprocess.Popen(["git", "checkout", "-b",
+                         f'pr/{num}', f'{other_user}/{branch}'])
         with open(".git_hub_cache", "w") as outfile:
             data = {"user": other_user, "pr": f'pr/{num}', "branch": branch}
             json.dump(data, outfile)
@@ -86,8 +87,8 @@ def push():
             other_user = data["user"]
             pr = data["pr"]
             branch = data["branch"]
-            p = subprocess.Popen(
-                ["git", "push", other_user, f'{pr}:{branch}'], stdout=subprocess.PIPE)
+            p = subprocess.Popen(["git", "push", other_user,
+                                 f'{pr}:{branch}'], stdout=subprocess.PIPE)
             p.stdout.read()
     except FileNotFoundError as e:
         print(e)
