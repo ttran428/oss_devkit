@@ -21,10 +21,6 @@ def pr(num):
     ----------
     num : integer
         The number of the pull request.
-
-    Returns
-    -------
-    None
     """
     process = subprocess.Popen("git remote -v", stdout=subprocess.PIPE)
     remotes = str(process.stdout.read())
@@ -82,14 +78,6 @@ def push():
 
     This will run the following command:
     "git push user pr/num:branch"
-
-    Parameters
-    ----------
-    None 
-
-    Returns
-    -------
-    None
 
     """
     try:
