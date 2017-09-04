@@ -8,6 +8,38 @@ import textwrap
 import os
 import toml
 
+def login():
+    """Returns the username and repo of the git directory.
+
+    This will run "git remote -v" and get the info out of 
+    the returned git url or SSH.
+    """
+    process = subprocess.Popen(["git","remote","-v"], stdout=subprocess.PIPE)
+    remotes = str(process.stdout.read())
+    url = remotes.split(" ", 1)[0]  # gets the fetch url
+    arguments = url.split(".com")[1]  # gets just the username/repo.git
+    arguments = arguments[1:]
+    arguments = arguments[:len(arguments) - 4]  # takes out ".git"
+    username, repo = arguments.split("/")
+    return (username, repo)
+
+def getToken():
+    """Gets a token from configuration folder.
+
+    You need to have a authentification token in your config
+    folder before running this command.
+    """
+    try:
+        with open(os.path.expanduser("~/.config/git-hub.yaml")) as stream:
+            yaml_file = str(yaml.load(stream))
+            token = yaml_file.split("=")[1].strip()
+
+    except (IndexError, FileNotFoundError) as e:
+        print(textwrap.dedent("""Needs an authentification token in: ~/.config/git-hub.yaml
+            file simply says: token = abc123
+            Visit https://help.github.com/articles/
+            creating-a-personal-access-token-for-the-command-line/"""))
+        sys.exit(1)
 
 def pr(num):
     """Pulls down and checkout the branch of the pr.
@@ -22,26 +54,8 @@ def pr(num):
     num : integer
         The number of the pull request.
     """
-    process = subprocess.Popen(["git", "remote", "-v"], stdout=subprocess.PIPE)
-    remotes = str(process.stdout.read())
-    url = remotes.split(" ", 1)[0]  # gets the fetch url
-    arguments = url.split(".com")[1]  # gets just the username/repo.git
-    arguments = arguments[1:]
-    arguments = arguments[:len(arguments) - 4]  # takes out ".git"
-    username, repo = arguments.split("/")
-
-    # gets token from config folder.
-    try:
-        with open(os.path.expanduser("~/.config/git-hub.yaml")) as stream:
-            yaml_file = str(yaml.load(stream))
-            token = yaml_file.split("=")[1].strip()
-
-    except (IndexError, FileNotFoundError) as e:
-        print(textwrap.dedent("""Needs an authentification token in: ~/.config/git-hub.yaml
-            file simply says: token = abc123
-            Visit https://help.github.com/articles/
-            creating-a-personal-access-token-for-the-command-line/"""))
-        sys.exit(1)
+    username, repo = login()
+    token = getToken()
 
     # gets pr and runs command.
     try:
@@ -104,7 +118,77 @@ def push():
         print("This command must be used after git hub pr.")
         sys.exit(1)
 
+def search(keyword):
+    """Searches open and closed pull request comments for specified keyword.
+    Opens pull-requests.toml file in .git folder to fetch pull requests.
+    
+    Parameters
+    ----------
+    keyword : string
+        Search string were trying to match
+    """
+    try:
+        open_prs = False
+        closed_prs = False
+        f = open("./.git/pull-requests.toml","r")
+        pr_dict = toml.load(f)      #fetches toml file and creates a dictionary
+        open_dict = pr_dict['open pull requests']
+        closed_dict = pr_dict['closed pull requests']
 
+        for key in open_dict.keys():        #iterates through and checks if open pull requsts have keyword
+            pull = open_dict[key]
+            if keyword in pull:
+                if not open_prs:
+                    click.echo("OPEN pull requests")
+                    open_prs = True
+                click.echo('{0}  {1}'.format(key, pull))
+
+        for key in closed_dict.keys():
+            pull = closed_dict[key]
+            if keyword in pull:
+                if not closed_prs:
+                    click.echo("OPEN pull requests")
+                    closed_prs = True
+                click.echo('{0}  {1}'.format(key, pull))
+
+        if not open_prs and not closed_prs:     #outputs if keyword was not contained in pull requets comments
+            click.echo("Could not find '{0}' in pull requests. Update your pull requests with 'git hub sync' and try again.".format(keyword))
+    except (OSError, IOError) as e:
+        #if pull-requests.toml hasnt been created yet calls sync and then reties to fetch
+        sync()
+        search(keyword)
+
+def sync():
+    """Updates and saves pull-requests in pull-requests.toml in the .git folder. """
+    username, repo = login()
+    token = getToken()
+
+    # saves pr into toml file
+    try:
+        g = github.Github(token)
+        filepath = os.path.join('./.git/', 'pull-requests.toml')
+        f = open(filepath, "w")
+        to_write = "['open pull requests']\n"   #later will be convereted to toml to store
+
+        #creates dictionaries in toml format as we scan though pull requests
+        open_prs = g.get_user(username).get_repo(repo).get_pulls("open")
+        for pr in open_prs:
+            to_write = to_write + "{0} = '{1}'\n".format(pr.number, pr.title)
+
+        to_write = to_write + "['closed pull requests']\n"
+        closed_prs = g.get_user(username).get_repo(repo).get_pulls("closed")
+        for pr in closed_prs:
+            to_write = to_write + "{0} = '{1}'\n".format(pr.number, pr.title)
+
+        #converts it to toml and stores in file
+        toml_string = toml.loads(to_write)
+        toml.dump(toml_string, f)
+
+
+    except github.BadCredentialsException as e:
+        print(e)
+        print("The authentification token is not valid.")
+        sys.exit(1)
 @click.group()
 def cli():
     pass
