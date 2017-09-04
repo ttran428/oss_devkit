@@ -5,8 +5,8 @@ import yaml
 import click
 import sys
 import textwrap
-import json
 import os
+import toml
 
 
 def pr(num):
@@ -22,11 +22,11 @@ def pr(num):
     num : integer
         The number of the pull request.
     """
-    process = subprocess.Popen("git remote -v", stdout=subprocess.PIPE)
+    process = subprocess.Popen(["git", "remote", "-v"], stdout=subprocess.PIPE)
     remotes = str(process.stdout.read())
     url = remotes.split(" ", 1)[0]  # gets the fetch url
-    url = url.split("\\t", 1)[1]  # takes out extra info
-    arguments = url.split(".com:")[1]  # gets just the username/repo.git
+    arguments = url.split(".com")[1]  # gets just the username/repo.git
+    arguments = arguments[1:]
     arguments = arguments[:len(arguments) - 4]  # takes out ".git"
     username, repo = arguments.split("/")
 
@@ -59,9 +59,15 @@ def pr(num):
         p.stdout.read()
         subprocess.Popen(["git", "checkout", "-b",
                          f'pr/{num}', f'{other_user}/{branch}'])
-        with open(".git_hub_cache", "w") as outfile:
-            data = {"user": other_user, "pr": f'pr/{num}', "branch": branch}
-            json.dump(data, outfile)
+        if os.path.isfile(".git_hub_cache"):
+            f = open(".git_hub_cache", "r")
+        else:
+            f = open(".git_hub_cache", "w+")
+        pr_dict = toml.load(f)
+        pr_data = {f'pr/{num}': {"branch": branch, "user": other_user}}
+        pr_dict[f'pr/{num}'] = pr_data[f'pr/{num}']
+        f = open(".git_hub_cache", "w")
+        toml.dump(pr_dict, f)
 
     except github.BadCredentialsException as e:
         print(e)
@@ -81,15 +87,18 @@ def push():
     "git push user pr/num:branch"
 
     """
+    p = subprocess.Popen("git branch", stdout=subprocess.PIPE)
+    pr = str(p.stdout.read())
+    pr = pr.split("*", 1)[1].split()[0]
+    pr = pr.replace("\\n", "").replace(" ", "").replace("'", "")
     try:
-        with open(".git_hub_cache") as json_file:
-            data = json.load(json_file)
-            other_user = data["user"]
-            pr = data["pr"]
-            branch = data["branch"]
-            p = subprocess.Popen(["git", "push", other_user,
-                                 f'{pr}:{branch}'], stdout=subprocess.PIPE)
-            p.stdout.read()
+        f = open(".git_hub_cache", "r")
+        pr_dict = toml.load(f)
+        user = pr_dict[pr]['user']
+        branch = pr_dict[pr]["branch"]
+        p = subprocess.Popen(["git", "push", user,
+                             f'{pr}:{branch}'], stdout=subprocess.PIPE)
+        p.stdout.read()
     except FileNotFoundError as e:
         print(e)
         print("This command must be used after git hub pr.")
