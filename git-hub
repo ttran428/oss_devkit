@@ -59,15 +59,17 @@ def pr(num):
         p.stdout.read()
         subprocess.Popen(["git", "checkout", "-b",
                          f'pr/{num}', f'{other_user}/{branch}'])
-        if os.path.isfile(".git_hub_cache"):
-            f = open(".git_hub_cache", "r")
-        else:
-            f = open(".git_hub_cache", "w+")
-        pr_dict = toml.load(f)
-        pr_data = {f'pr/{num}': {"branch": branch, "user": other_user}}
-        pr_dict[f'pr/{num}'] = pr_data[f'pr/{num}']
-        f = open(".git_hub_cache", "w")
-        toml.dump(pr_dict, f)
+        with open(".git_hub_cache", "a+") as f:
+            if os.stat(".git_hub_cache").st_size == 0:  # check if empty
+                f.write("#This file contains metadata about pull requests. \n")
+            pr_dict = toml.load(f)
+        f.close()
+        if f'pr/{num}' not in pr_dict:
+            print("not in pr_dict")
+            with open(".git_hub_cache", "a") as f:
+                f.write(f"""\n ['pr/{num}'] \n 'branch' = '{branch}' \n
+                        'user' = '{other_user}' \n""")
+            f.close()
 
     except github.BadCredentialsException as e:
         print(e)
@@ -94,6 +96,7 @@ def push():
     try:
         f = open(".git_hub_cache", "r")
         pr_dict = toml.load(f)
+        print(pr_dict)
         user = pr_dict[pr]['user']
         branch = pr_dict[pr]["branch"]
         p = subprocess.Popen(["git", "push", user,
