@@ -9,6 +9,53 @@ import os
 import toml
 
 
+def login():
+    """Retrieves the user's remote.
+
+    This will run the command "git remote -v",
+    then abstract the username and repo from the remote.
+
+    Returns
+    -------
+    username : string
+        username of the remote
+    repo : string
+        repository of the remote
+
+    """
+    process = subprocess.Popen(["git", "remote", "-v"], stdout=subprocess.PIPE)
+    remotes = str(process.stdout.read())
+    url = remotes.split(" ", 1)[0]  # gets the fetch url
+    arguments = url.split(".com")[1]  # gets just the username/repo.git
+    arguments = arguments[1:]
+    arguments = arguments[:len(arguments) - 4]  # takes out ".git"
+    username, repo = arguments.split("/")
+    return (username, repo, remotes)
+
+
+def getToken():
+    """Will get token from authentification file
+
+    Returns
+    -------
+    token : string
+        a number corresponding to user's
+        authentification
+    """
+    try:
+        with open(os.path.expanduser("~/.config/git-hub.yaml")) as stream:
+            yaml_file = str(yaml.load(stream))
+            token = yaml_file.split("=")[1].strip()
+            return token
+
+    except (IndexError, FileNotFoundError) as e:
+        print(textwrap.dedent("""Needs an authentification token in: ~/.config/git-hub.yaml
+            file simply says: token = abc123
+            Visit https://help.github.com/articles/
+            creating-a-personal-access-token-for-the-command-line/"""))
+        sys.exit(1)
+
+
 def pr(num):
     """Pulls down and checkout the branch of the pr.
 
@@ -22,26 +69,8 @@ def pr(num):
     num : integer
         The number of the pull request.
     """
-    process = subprocess.Popen(["git", "remote", "-v"], stdout=subprocess.PIPE)
-    remotes = str(process.stdout.read())
-    url = remotes.split(" ", 1)[0]  # gets the fetch url
-    arguments = url.split(".com")[1]  # gets just the username/repo.git
-    arguments = arguments[1:]
-    arguments = arguments[:len(arguments) - 4]  # takes out ".git"
-    username, repo = arguments.split("/")
-
-    # gets token from config folder.
-    try:
-        with open(os.path.expanduser("~/.config/git-hub.yaml")) as stream:
-            yaml_file = str(yaml.load(stream))
-            token = yaml_file.split("=")[1].strip()
-
-    except (IndexError, FileNotFoundError) as e:
-        print(textwrap.dedent("""Needs an authentification token in: ~/.config/git-hub.yaml
-            file simply says: token = abc123
-            Visit https://help.github.com/articles/
-            creating-a-personal-access-token-for-the-command-line/"""))
-        sys.exit(1)
+    username, repo, remotes = login()
+    token = getToken()
 
     # gets pr and runs command.
     try:
@@ -62,13 +91,15 @@ def pr(num):
         with open(".git_hub_cache", "a+") as f:
             if os.stat(".git_hub_cache").st_size == 0:  # check if empty
                 f.write("#This file contains metadata about pull requests. \n")
+        f.close()
+        with open(".git_hub_cache", "r") as f:
             pr_dict = toml.load(f)
         f.close()
         if f'pr/{num}' not in pr_dict:
-            print("not in pr_dict")
+            print(pr_dict)
             with open(".git_hub_cache", "a") as f:
-                f.write(f"""\n ['pr/{num}'] \n 'branch' = '{branch}' \n
-                        'user' = '{other_user}' \n""")
+                f.write((f"\n ['pr/{num}'] \n'branch' = '{branch}' \n"
+                        f"'user' = '{other_user}' \n"))
             f.close()
 
     except github.BadCredentialsException as e:
@@ -96,12 +127,12 @@ def push():
     try:
         f = open(".git_hub_cache", "r")
         pr_dict = toml.load(f)
-        print(pr_dict)
         user = pr_dict[pr]['user']
         branch = pr_dict[pr]["branch"]
         p = subprocess.Popen(["git", "push", user,
                              f'{pr}:{branch}'], stdout=subprocess.PIPE)
         p.stdout.read()
+        print(["git", "push", user, f'{pr}:{branch}'])
     except FileNotFoundError as e:
         print(e)
         print("This command must be used after git hub pr.")
