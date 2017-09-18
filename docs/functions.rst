@@ -20,13 +20,15 @@ is equivalent to these commands at the terminal:
 git hub push
 ------------
 Pushes changes back to a branch. It will run this command in the terminal.::
-	
-	git push user pr/num:branch
 
-**3. git hub sync**
+  git push user pr/num:branch
+
+git hub sync
+------------
 Updates and saves pull requests in pull-requests.toml in the .git folder.
 
-**4. git hub search** [*args]
+git hub search [*args]
+----------------------
 Searches in pull-requests.toml to find pull-requests that match search keywords in *args.
 
-.. note:: It is recommended to run **git hub sync** to update pull-requests.toml before running **git hub search** [*args].
+.. note:: It is recommended to run **git hub sync** to update pull-requests.toml before running **git hub search [*args]**.

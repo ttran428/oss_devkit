@@ -47,7 +47,7 @@
 <div class="highlight-default"><div class="highlight"><pre><span></span><span class="n">git</span> <span class="n">hub</span> <span class="n">pr</span> <span class="mi">42</span>
 </pre></div>
 </div>
-<p>is euivalent to these commands at the terminal:</p>
+<p>is equivalent to these commands at the terminal:</p>
 <div class="highlight-default"><div class="highlight"><pre><span></span><span class="n">git</span> <span class="n">remote</span> <span class="n">add</span> <span class="n">user</span> <span class="n">git</span><span class="nd">@github</span><span class="o">.</span><span class="n">com</span><span class="p">:</span><span class="n">user</span><span class="o">/</span><span class="n">repo</span>
 <span class="n">git</span> <span class="n">fetch</span> <span class="n">user</span>
 <span class="n">git</span> <span class="n">checkout</span> <span class="o">-</span><span class="n">b</span> <span class="n">pr</span><span class="o">/</span><span class="n">num</span> <span class="n">user</span><span class="o">/</span><span class="n">branch</span>
@@ -60,13 +60,17 @@
 <div class="highlight-default"><div class="highlight"><pre><span></span><span class="n">git</span> <span class="n">push</span> <span class="n">user</span> <span class="n">pr</span><span class="o">/</span><span class="n">num</span><span class="p">:</span><span class="n">branch</span>
 </pre></div>
 </div>
-<p><strong>3. git hub sync</strong>
-Updates and saves pull requests in pull-requests.toml in the .git folder.</p>
-<p><strong>4. git hub search</strong> [<a href="#id1"><span class="problematic" id="id2">*</span></a>args]
-Searches in pull-requests.toml to find pull-requests that match search keywords in <a href="#id3"><span class="problematic" id="id4">*</span></a>args.</p>
+</div>
+<div class="section" id="git-hub-sync">
+<h2>git hub sync<a class="headerlink" href="#git-hub-sync" title="Permalink to this headline">¶</a></h2>
+<p>Updates and saves pull requests in pull-requests.toml in the .git folder.</p>
+</div>
+<div class="section" id="git-hub-search-args">
+<h2>git hub search [<a href="#id1"><span class="problematic" id="id2">*</span></a>args]<a class="headerlink" href="#git-hub-search-args" title="Permalink to this headline">¶</a></h2>
+<p>Searches in pull-requests.toml to find pull-requests that match search keywords in <a href="#id3"><span class="problematic" id="id4">*</span></a>args.</p>
 <div class="admonition note">
 <p class="first admonition-title">Note</p>
-<p class="last">It is recommended to run <strong>git hub sync</strong> to update pull-requests.toml before running <strong>git hub search</strong> [<a href="#id5"><span class="problematic" id="id6">*</span></a>args].</p>
+<p class="last">It is recommended to run <strong>git hub sync</strong> to update pull-requests.toml before running <strong>git hub search [*args]</strong>.</p>
 </div>
 </div>
 </div>
@@ -77,14 +81,27 @@ Searches in pull-requests.toml to find pull-requests that match search keywords 
       </div>
       <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
         <div class="sphinxsidebarwrapper">
-  <h3><a href="index.html">Table Of Contents</a></h3>
-  <ul>
-<li><a class="reference internal" href="#">Command Line Functions</a><ul>
-<li><a class="reference internal" href="#git-hub-pr">git hub pr</a></li>
-<li><a class="reference internal" href="#git-hub-push">git hub push</a></li>
+<h1 class="logo"><a href="index.html">OSS Devkit</a></h1>
+
+
+
+
+
+
+
+
+<h3>Navigation</h3>
+<p class="caption"><span class="caption-text">Contents:</span></p>
+<ul class="current">
+<li class="toctree-l1 current"><a class="current reference internal" href="#">Command Line Functions</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#git-hub-pr">git hub pr</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#git-hub-push">git hub push</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#git-hub-sync">git hub sync</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#git-hub-search-args">git hub search [*args]</a></li>
 </ul>
 </li>
 </ul>
+
 <div class="relations">
 <h3>Related Topics</h3>
 <ul>
@@ -93,13 +110,6 @@ Searches in pull-requests.toml to find pull-requests that match search keywords 
   </ul></li>
 </ul>
 </div>
-  <div role="note" aria-label="source link">
-    <h3>This Page</h3>
-    <ul class="this-page-menu">
-      <li><a href="_sources/functions.rst.txt"
-            rel="nofollow">Show Source</a></li>
-    </ul>
-   </div>
 <div id="searchbox" style="display: none" role="search">
   <h3>Quick search</h3>
     <form class="search" action="search.html" method="get">

@@ -1,3 +1,4 @@
 pygithub
 pyyaml
 click
+toml

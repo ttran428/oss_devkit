@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 #!/usr/bin/env python
 import subprocess
 import github
@@ -212,3 +213,200 @@ def hub(command, args):
 
 if __name__ == "__main__":
     hub()
+=======
+#!/usr/bin/env python
+import subprocess
+import github
+import yaml
+import click
+import sys
+import textwrap
+import os
+import toml
+
+
+def login():
+    """Retrieves the user's remote.
+
+    This will run the command "git remote -v",
+    then abstract the username and repo from the remote.
+
+    Returns
+    -------
+    username : string
+        username of the remote
+    repo : string
+        repository of the remote
+
+    """
+    process = subprocess.Popen(["git", "remote", "-v"], stdout=subprocess.PIPE)
+    remotes = str(process.stdout.read())
+    url = remotes.split(" ", 1)[0]  # gets the fetch url
+    arguments = url.split(".com")[1]  # gets just the username/repo.git
+    arguments = arguments[1:]
+    arguments = arguments.split(".git")[0]  # takes out ".git"
+    username, repo = arguments.split("/")
+    return (username, repo, remotes)
+
+
+def getToken():
+    """Will get token from authentification file
+
+    Returns
+    -------
+    token : string
+        a number corresponding to user's
+        authentification
+    """
+    try:
+        with open(os.path.expanduser("~/.config/git-hub.yaml")) as stream:
+            yaml_file = str(yaml.load(stream))
+            token = yaml_file.split("=")[1].strip()
+            return token
+
+    except (IndexError, FileNotFoundError) as e:
+        print(textwrap.dedent("""Needs an authentification token in: ~/.config/git-hub.yaml
+            file simply says: token = abc123
+            Visit https://help.github.com/articles/
+            creating-a-personal-access-token-for-the-command-line/"""))
+        sys.exit(1)
+
+
+def path_to_git():
+    """Will return the path to the git directory.
+
+    Returns
+    -------
+    path_to_git : string
+        a string consisting of how to get to the
+        git directory
+    """
+    path_to_git = './'
+    count = 0
+    # if not in directory with .git, keep going back to find file
+    while (count < 4 and
+           not any(fname == '.git' for fname in os.listdir(path_to_git))):
+                path_to_git = path_to_git+"../"
+                count = count + 1
+    if (count == 4 and
+       not any(fname == '.git' for fname in os.listdir(path_to_git))):
+            click.echo(textwrap.dedent("""Not in the correct directory. Make sure
+                       you are in a directory containing your .git file."""))
+            return None
+    path_to_git = path_to_git+".git/"
+    if not any(fname == 'git-hub' for fname in os.listdir(path_to_git)):
+        os.makedirs(path_to_git+"git-hub/")
+    path_to_git = path_to_git+"git-hub/"
+    return path_to_git
+
+
+def pr(num):
+    """Pulls down and checkout the branch of the pr.
+
+    This will run the following commands in the terminal:
+    "git remote add user git@github.com:user/repo",
+    "git fetch user",
+    "git checkout -b pr/num user/branch"
+
+    Parameters
+    ----------
+    num : integer
+        The number of the pull request.
+    """
+    username, repo, remotes = login()
+    token = getToken()
+
+    # gets pr and runs command.
+    try:
+        g = github.Github(token)
+        pr = g.get_user(username).get_repo(repo).get_pull(num)
+        label = pr.head.label
+        other_user, branch = label.split(":")
+        remote_name = "\\n" + other_user + "\\t"
+        if remote_name not in remotes:
+            p = subprocess.Popen(["git", "remote", "add", other_user,
+                                 f'git@github.com:{other_user}/{repo}'])
+            p.communicate()
+        p = subprocess.Popen(["git", "fetch", other_user],
+                             stdout=subprocess.PIPE)
+        p.stdout.read()
+        subprocess.Popen(["git", "checkout", "-b",
+                         f'pr/{num}', f'{other_user}/{branch}'])
+        file_path = path_to_git()
+        file_path = os.path.join(file_path, '.git_hub_cache')
+        with open(file_path, "a+") as f:
+            if os.stat(file_path).st_size == 0:  # check if empty
+                f.write("#This file contains metadata about pull requests. \n")
+        f.close()
+        with open(file_path, "r") as f:
+            pr_dict = toml.load(f)
+        f.close()
+        if f'pr/{num}' not in pr_dict:
+            with open(file_path, "a") as f:
+                f.write((f"\n ['pr/{num}'] \n'branch' = '{branch}' \n"
+                        f"'user' = '{other_user}' \n"))
+            f.close()
+
+    except github.BadCredentialsException as e:
+        print(e)
+        print("The authentification token is not valid.")
+        sys.exit(1)
+
+    except github.UnknownObjectException as e:
+        print(e)
+        print(f'There is no pr with number {num}.')
+        sys.exit(1)
+
+
+def push():
+    """Pushes changes back to a branch.
+
+    This will run the following command:
+    "git push user pr/num:branch"
+
+    """
+    p = subprocess.Popen("git branch", stdout=subprocess.PIPE)
+    pr = str(p.stdout.read())
+    pr = pr.split("*", 1)[1].split()[0]
+    pr = pr.replace("\\n", "").replace(" ", "").replace("'", "")
+    try:
+        file_path = path_to_git()
+        file_path = os.path.join(file_path, '.git_hub_cache')
+        f = open(file_path, "r")
+        pr_dict = toml.load(f)
+        user = pr_dict[pr]['user']
+        branch = pr_dict[pr]["branch"]
+        p = subprocess.Popen(["git", "push", user,
+                             f'{pr}:{branch}'], stdout=subprocess.PIPE)
+        p.stdout.read()
+        print(["git", "push", user, f'{pr}:{branch}'])
+    except FileNotFoundError as e:
+        print(e)
+        print("This command must be used after git hub pr.")
+        sys.exit(1)
+
+
+@click.group()
+def cli():
+    pass
+
+
+@cli.command()
+@click.argument("command", default="")
+@click.argument("args", nargs=-1)
+def hub(command, args):
+    if command == "pr":
+        pr_num = int(args[0])
+        pr(pr_num)
+
+    elif command == "push":
+        push()
+
+    else:
+        print("invalid command")
+        sys.exit(1)
+
+
+if __name__ == "__main__":
+    hub()
+>>>>>>> push
