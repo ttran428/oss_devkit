@@ -28,7 +28,7 @@ def login():
     url = remotes.split(" ", 1)[0]  # gets the fetch url
     arguments = url.split(".com")[1]  # gets just the username/repo.git
     arguments = arguments[1:]
-    arguments = arguments[:len(arguments) - 4]  # takes out ".git"
+    arguments = arguments.split(".git")[0]  # takes out ".git"
     username, repo = arguments.split("/")
     return (username, repo, remotes)
 
@@ -54,6 +54,34 @@ def getToken():
             Visit https://help.github.com/articles/
             creating-a-personal-access-token-for-the-command-line/"""))
         sys.exit(1)
+
+
+def path_to_git():
+    """Will return the path to the git directory.
+
+    Returns
+    -------
+    path_to_git : string
+        a string consisting of how to get to the
+        git directory
+    """
+    path_to_git = './'
+    count = 0
+    # if not in directory with .git, keep going back to find file
+    while (count < 4 and
+           not any(fname == '.git' for fname in os.listdir(path_to_git))):
+                path_to_git = path_to_git+"../"
+                count = count + 1
+    if (count == 4 and
+       not any(fname == '.git' for fname in os.listdir(path_to_git))):
+            click.echo(textwrap.dedent("""Not in the correct directory. Make sure
+                       you are in a directory containing your .git file."""))
+            return None
+    path_to_git = path_to_git+".git/"
+    if not any(fname == 'git-hub' for fname in os.listdir(path_to_git)):
+        os.makedirs(path_to_git+"git-hub/")
+    path_to_git = path_to_git+"git-hub/"
+    return path_to_git
 
 
 def pr(num):
@@ -88,16 +116,17 @@ def pr(num):
         p.stdout.read()
         subprocess.Popen(["git", "checkout", "-b",
                          f'pr/{num}', f'{other_user}/{branch}'])
-        with open(".git_hub_cache", "a+") as f:
-            if os.stat(".git_hub_cache").st_size == 0:  # check if empty
+        file_path = path_to_git()
+        file_path = os.path.join(file_path, '.git_hub_cache')
+        with open(file_path, "a+") as f:
+            if os.stat(file_path).st_size == 0:  # check if empty
                 f.write("#This file contains metadata about pull requests. \n")
         f.close()
-        with open(".git_hub_cache", "r") as f:
+        with open(file_path, "r") as f:
             pr_dict = toml.load(f)
         f.close()
         if f'pr/{num}' not in pr_dict:
-            print(pr_dict)
-            with open(".git_hub_cache", "a") as f:
+            with open(file_path, "a") as f:
                 f.write((f"\n ['pr/{num}'] \n'branch' = '{branch}' \n"
                         f"'user' = '{other_user}' \n"))
             f.close()
@@ -125,7 +154,9 @@ def push():
     pr = pr.split("*", 1)[1].split()[0]
     pr = pr.replace("\\n", "").replace(" ", "").replace("'", "")
     try:
-        f = open(".git_hub_cache", "r")
+        file_path = path_to_git()
+        file_path = os.path.join(file_path, '.git_hub_cache')
+        f = open(file_path, "r")
         pr_dict = toml.load(f)
         user = pr_dict[pr]['user']
         branch = pr_dict[pr]["branch"]
