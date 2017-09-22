@@ -52,10 +52,18 @@ def getToken():
             return token
 
     except (IndexError, FileNotFoundError) as e:
-        print(textwrap.dedent("""Needs an authentification token in: ~/.config/git-hub.yaml
-            file simply says: token = abc123
-            Visit https://help.github.com/articles/
-            creating-a-personal-access-token-for-the-command-line/"""))
+        print(textwrap.dedent("""\
+            No authentication token specified in: ~/.config/git-hub.yaml
+
+            Please see
+
+              https://help.github.com/articles/creating-a-personal-access-token-for-the-command-line/
+
+            for instruction on obtaining a token.  Then update the configuration
+            file as follows:
+
+              token = abc123
+        """))
         sys.exit(1)
 
 
@@ -395,8 +403,6 @@ def sync():
         path_prs = pjoin(path_github, 'pull-requests.toml')
         if not os.path.isdir(path_github):
             os.makedirs(path_github)
-        if not os.path.isfile(path_prs):
-            os.makeFile(path_prs)
 
         f = open(path_prs, "w")
         to_write = "[['open pull requests']]\n"   # later will be convereted to toml to store
