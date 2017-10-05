@@ -10,8 +10,9 @@ def test_git_repo():
 
 	print("running new command")
 	command = subprocess.Popen(["git", "hub", "pr", "1"], stdout=subprocess.PIPE, stdin = subprocess.PIPE)
-	print(str(command.stdout.read()))
-	
+	assert str(command.stdout.read()) == 'Branch pr/1 set up to track remote branch test from ttran428.\n'
+	os.chdir(os.getcwd() + "/../..")
+	subprocess.Popen(["rm", "-rf", "test3"])
 
 
 def test_push():
