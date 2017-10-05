@@ -1,6 +1,6 @@
 
 
-def git_repo():
+def test_git_repo():
 	subprocess.Popen(["git", "clone", "git@github.com:machine-shop/test_repo.git"])
 	subprocess.Popen(["ls"])
 def test_push():
