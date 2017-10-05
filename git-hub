@@ -87,33 +87,6 @@ def pr(num):
     try:
         g = github.Github(token)
         pr = g.get_user(username).get_repo(repo).get_pull(num)
-        label = pr.head.label
-        other_user, branch = label.split(":")
-        process = subprocess.Popen(["git", "remote", "-v"], stdout=subprocess.PIPE)
-        remotes = str(process.stdout.read())
-        remote_name = "\\n" + other_user + "\\t"
-        if remote_name not in remotes:
-            p = subprocess.Popen(["git", "remote", "add", other_user, f'git@github.com:{other_user}/{repo}'])
-            p.communicate()
-        p = subprocess.Popen(["git", "fetch", other_user],
-                             stdout=subprocess.PIPE)
-        p.stdout.read()
-        subprocess.Popen(["git", "checkout", "-b",
-                         f'pr/{num}', f'{other_user}/{branch}'])
-        file_path = path_to_git()
-        file_path = os.path.join(file_path, '.git_hub_cache')
-        with open(file_path, "a+") as f:
-            if os.stat(file_path).st_size == 0:  # check if empty
-                f.write("#This file contains metadata about pull requests. \n")
-        f.close()
-        with open(file_path, "r") as f:
-            pr_dict = toml.load(f)
-        f.close()
-        if f'pr/{num}' not in pr_dict:
-            with open(file_path, "a") as f:
-                f.write((f"\n ['pr/{num}'] \n'branch' = '{branch}' \n"
-                        f"'user' = '{other_user}' \n"))
-            f.close()
 
     except github.BadCredentialsException as e:
         print(e)
@@ -124,6 +97,34 @@ def pr(num):
         print(e)
         print(f'There is no pr with number {num}.')
         sys.exit(1)
+
+    label = pr.head.label
+    other_user, branch = label.split(":")
+    process = subprocess.Popen(["git", "remote", "-v"], stdout=subprocess.PIPE)
+    remotes = str(process.stdout.read())
+    remote_name = "\\n" + other_user + "\\t"
+    if remote_name not in remotes:
+        p = subprocess.Popen(["git", "remote", "add", other_user, f'git@github.com:{other_user}/{repo}'])
+        p.communicate()
+    p = subprocess.Popen(["git", "fetch", other_user],
+                         stdout=subprocess.PIPE)
+    p.stdout.read()
+    subprocess.Popen(["git", "checkout", "-b",
+                     f'pr/{num}', f'{other_user}/{branch}'])
+    file_path = path_to_git()
+    file_path = os.path.join(file_path, '.git_hub_cache')
+    with open(file_path, "a+") as f:
+        if os.stat(file_path).st_size == 0:  # check if empty
+            f.write("#This file contains metadata about pull requests. \n")
+    f.close()
+    with open(file_path, "r") as f:
+        pr_dict = toml.load(f)
+    f.close()
+    if f'pr/{num}' not in pr_dict:
+        with open(file_path, "a") as f:
+            f.write((f"\n ['pr/{num}'] \n'branch' = '{branch}' \n"
+                    f"'user' = '{other_user}' \n"))
+        f.close()
 
 
 def push():
@@ -137,17 +138,18 @@ def push():
     pr = str(p.stdout.read())
     pr = pr.split("*", 1)[1].split()[0]
     pr = pr.replace("\\n", "").replace(" ", "").replace("'", "")
+    file_path = path_to_git()
+    file_path = os.path.join(file_path, '.git_hub_cache')    
     try:
-        file_path = path_to_git()
-        file_path = os.path.join(file_path, '.git_hub_cache')
-        f = open(file_path, "r")
-        pr_dict = toml.load(f)
-        user = pr_dict[pr]['user']
-        branch = pr_dict[pr]["branch"]
-        p = subprocess.Popen(["git", "push", user,
-                             f'{pr}:{branch}'], stdout=subprocess.PIPE)
-        p.stdout.read()
-        print(["git", "push", user, f'{pr}:{branch}'])
+        with open(file_path, "r") as f:
+            pr_dict = toml.load(f)
+            user = pr_dict[pr]['user']
+            branch = pr_dict[pr]["branch"]
+            p = subprocess.Popen(["git", "push", user,
+                                 f'{pr}:{branch}'], stdout=subprocess.PIPE)
+            p.stdout.read()
+            print(["git", "push", user, f'{pr}:{branch}'])    
+        f.close()   
     except FileNotFoundError as e:
         print(e)
         print("This command must be used after git hub pr.")
@@ -194,10 +196,11 @@ def get_info(pr_num):
         path_git = path_to_git()
         path_github = pjoin(path_git, 'git-hub')
         path_prs = pjoin(path_github, 'pull-requests.toml')
-        f = open(path_prs, "r")
-        pr_dict = toml.load(f)      # fetches toml file and creates a dictionary
-        open_dict = pr_dict['open pull requests']
-        closed_dict = pr_dict['closed pull requests']
+        with open(path_prs, "r") as f:
+            pr_dict = toml.load(f)      # fetches toml file and creates a dictionary
+            open_dict = pr_dict['open pull requests']
+            closed_dict = pr_dict['closed pull requests']
+        f.close()
     except (OSError, IOError) as e:
         # if pull-requests.toml hasnt been created yet calls sync and then reties to fetch
         sync()
@@ -320,8 +323,9 @@ def search(keyword, user, comment, number, branch, opened_or_closed, label, sort
         path_git = path_to_git()
         path_github = pjoin(path_git, 'git-hub')
         path_prs = pjoin(path_github, 'pull-requests.toml')
-        f = open(path_prs, "r")
-        pr_dict = toml.load(f)      # fetches toml file and creates a dictionary
+        with open(path_prs, "r") as f:
+            pr_dict = toml.load(f)      # fetches toml file and creates a dictionary
+        f.close()
     except (OSError, IOError) as e:
         # if pull-requests.toml hasnt been created yet calls sync and then reties to fetch
         sync()
@@ -403,8 +407,7 @@ def sync():
         path_prs = pjoin(path_github, 'pull-requests.toml')
         if not os.path.isdir(path_github):
             os.makedirs(path_github)
-
-        f = open(path_prs, "w")
+        f = open(path_prs, "w") #ASK SERA FOR THIS 
         to_write = "[['open pull requests']]\n"   # later will be convereted to toml to store
     except github.BadCredentialsException as e:
         print(e)
