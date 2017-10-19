@@ -104,7 +104,8 @@ def pr(num):
     remotes = str(process.stdout.read())
     remote_name = "\\n" + other_user + "\\t"
     if remote_name not in remotes:
-        p = subprocess.Popen(["git", "remote", "add", other_user, f'git@github.com:{other_user}/{repo}'])
+        #p = subprocess.Popen(["git", "remote", "add", other_user, f'git@github.com:{other_user}/{repo}'])
+        p = subprocess.Popen(["git", "remote", "add", other_user, f'https://github.com/{other_user}/{repo}.git'])
         p.communicate()
     p = subprocess.Popen(["git", "fetch", other_user],
                          stdout=subprocess.PIPE)
