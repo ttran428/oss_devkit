@@ -135,7 +135,7 @@ def push():
     "git push user pr/num:branch"
 
     """
-    p = subprocess.Popen("git branch", stdout=subprocess.PIPE)
+    p = subprocess.Popen("git", "branch", stdout=subprocess.PIPE)
     pr = str(p.stdout.read())
     pr = pr.split("*", 1)[1].split()[0]
     pr = pr.replace("\\n", "").replace(" ", "").replace("'", "")
