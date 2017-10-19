@@ -1,3 +1,4 @@
+
 import subprocess
 import os
 import shutil 
@@ -18,7 +19,6 @@ def test_pr():
 def test_pr_out_of_bounds():
 	command = subprocess.Popen(["git", "hub", "pr", "3"], stdout=subprocess.PIPE, stdin=subprocess.PIPE)
 	assert "There is no pr with number 3." in str(command.stdout.read())
-	
 def test_push():
 	# start = str(os.getcwd())
 	# os.makedirs("test3")
@@ -54,4 +54,3 @@ def test_push_before_pull():
 
 	os.chdir("../..") #deletes all of the files 
 	shutil.rmtree("test3")
-
