@@ -125,6 +125,7 @@ def pr(num):
             f.write((f"\n ['pr/{num}'] \n'branch' = '{branch}' \n"
                     f"'user' = '{other_user}' \n"))
         f.close()
+    return "This was successful"
 
 
 def push():
@@ -200,7 +201,7 @@ def get_info(pr_num):
             pr_dict = toml.load(f)      # fetches toml file and creates a dictionary
             open_dict = pr_dict['open pull requests']
             closed_dict = pr_dict['closed pull requests']
-        f.close()
+
     except (OSError, IOError) as e:
         # if pull-requests.toml hasnt been created yet calls sync and then reties to fetch
         sync()

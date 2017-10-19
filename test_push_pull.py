@@ -10,7 +10,7 @@ def test_git_repo():
 
     print("running new command")
     #command = subprocess.Popen(["git", "hub", "pr", "1"], stdout=subprocess.PIPE, stdin = subprocess.PIPE)
-    p = subprocess.Popen(["git", "remote", "add", "ttran428", 'git@github.com:ttran428/test_repo'])
+    p = subprocess.Popen(["git", "remote", "add", "ttran428", 'https://github.com/ttran428/test_repo.git'])
     p.communicate()
     p = subprocess.Popen(["git", "fetch", "ttran428"], stdout=subprocess.PIPE)
     p.stdout.read()
