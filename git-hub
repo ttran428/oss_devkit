@@ -113,18 +113,28 @@ def pr(num):
                      f'pr/{num}', f'{other_user}/{branch}'])
     file_path = path_to_git()
     file_path = os.path.join(file_path, '.git_hub_cache')
-    with open(file_path, "a+") as f:
-        if os.stat(file_path).st_size == 0:  # check if empty
-            f.write("#This file contains metadata about pull requests. \n")
-    f.close()
-    with open(file_path, "r") as f:
-        pr_dict = toml.load(f)
-    f.close()
+    try:
+        with open(file_path, "a+") as f:
+            if os.stat(file_path).st_size == 0:  # check if empty
+                f.write("#This file contains metadata about pull requests. \n")
+    except IOError as e:
+        print(e)
+        print("Could not create or append file.")
+        sys.exit(1)
+    try:
+        with open(file_path, "r") as f:
+            pr_dict = toml.load(f)
+    except IOError as e:
+        print(e)
+        print("Could not read and load toml file.")
     if f'pr/{num}' not in pr_dict:
-        with open(file_path, "a") as f:
-            f.write((f"\n ['pr/{num}'] \n'branch' = '{branch}' \n"
-                    f"'user' = '{other_user}' \n"))
-        f.close()
+        try:
+            with open(file_path, "a") as f:
+                f.write((f"\n ['pr/{num}'] \n'branch' = '{branch}' \n"
+                        f"'user' = '{other_user}' \n"))
+        except IOError as e:
+            print(e)
+            print("Could not append information to metadata.")
 
 
 def push():
@@ -143,17 +153,16 @@ def push():
     try:
         with open(file_path, "r") as f:
             pr_dict = toml.load(f)
-            user = pr_dict[pr]['user']
-            branch = pr_dict[pr]["branch"]
-            p = subprocess.Popen(["git", "push", user,
-                                 f'{pr}:{branch}'], stdout=subprocess.PIPE)
-            p.stdout.read()
-            print(["git", "push", user, f'{pr}:{branch}'])    
-        f.close()   
     except FileNotFoundError as e:
         print(e)
         print("This command must be used after git hub pr.")
         sys.exit(1)
+    user = pr_dict[pr]['user']
+    branch = pr_dict[pr]["branch"]
+    p = subprocess.Popen(["git", "push", user,
+                         f'{pr}:{branch}'], stdout=subprocess.PIPE)
+    p.stdout.read() 
+
 
 
 def path_to_git():
@@ -200,7 +209,6 @@ def get_info(pr_num):
             pr_dict = toml.load(f)      # fetches toml file and creates a dictionary
             open_dict = pr_dict['open pull requests']
             closed_dict = pr_dict['closed pull requests']
-        f.close()
     except (OSError, IOError) as e:
         # if pull-requests.toml hasnt been created yet calls sync and then reties to fetch
         sync()
@@ -407,7 +415,7 @@ def sync():
         path_prs = pjoin(path_github, 'pull-requests.toml')
         if not os.path.isdir(path_github):
             os.makedirs(path_github)
-        f = open(path_prs, "w") #ASK SERA FOR THIS 
+
         to_write = "[['open pull requests']]\n"   # later will be convereted to toml to store
     except github.BadCredentialsException as e:
         print(e)
@@ -425,8 +433,11 @@ def sync():
         to_write = to_write + json_to_toml(username, repo, pr, token, "closed")
     # converts it to toml and stores in file
     toml_string = toml.loads(to_write)
-    toml.dump(toml_string, f)
-
+    try:
+        with open(path_prs, "w") as f:
+            toml.dump(toml_string, f)
+    except IOError as e:
+        print(e)
 
 @click.group()
 def cli():
