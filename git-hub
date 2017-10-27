@@ -9,8 +9,8 @@ import json
 import toml
 import os
 from urllib.request import urlopen, Request
-
 from os.path import join as pjoin
+
 
 def login():
     """Retrieves the user's remote.
@@ -59,7 +59,7 @@ def getToken():
 
               https://help.github.com/articles/creating-a-personal-access-token-for-the-command-line/
 
-            for instruction on obtaining a token.  Then update the configuration
+            for instruction on obtaining a token. Then update the configuration
             file as follows:
 
               token = abc123
@@ -104,7 +104,8 @@ def pr(num):
     remotes = str(process.stdout.read())
     remote_name = "\\n" + other_user + "\\t"
     if remote_name not in remotes:
-        p = subprocess.Popen(["git", "remote", "add", other_user, f'git@github.com:{other_user}/{repo}'])
+        p = subprocess.Popen(["git", "remote", "add", other_user,
+                              f'git@github.com:{other_user}/{repo}'])
         p.communicate()
     p = subprocess.Popen(["git", "fetch", other_user],
                          stdout=subprocess.PIPE)
@@ -149,7 +150,7 @@ def push():
     pr = pr.split("*", 1)[1].split()[0]
     pr = pr.replace("\\n", "").replace(" ", "").replace("'", "")
     file_path = path_to_git()
-    file_path = os.path.join(file_path, '.git_hub_cache')    
+    file_path = os.path.join(file_path, '.git_hub_cache')
     try:
         with open(file_path, "r") as f:
             pr_dict = toml.load(f)
@@ -161,13 +162,14 @@ def push():
     branch = pr_dict[pr]["branch"]
     p = subprocess.Popen(["git", "push", user,
                          f'{pr}:{branch}'], stdout=subprocess.PIPE)
-    p.stdout.read() 
-
+    p.stdout.read()
 
 
 def path_to_git():
     path_repo = os.path.abspath('.')
-    while os.path.abspath(path_repo) != '/' and not os.path.isdir(pjoin(path_repo, '.git')):  # if not in directory with .git, keep going back to find file
+    # if not in directory with .git, keep going back to find file
+    while (os.path.abspath(path_repo) != '/'
+           and not os.path.isdir(pjoin(path_repo, '.git'))):
         path_repo = pjoin(path_repo, '..')
     path_git = pjoin(path_repo, ".git")
     return path_git
@@ -201,16 +203,17 @@ def get_info(pr_num):
         number of PR to fetch information from
     """
 
+    path_git = path_to_git()
+    path_github = pjoin(path_git, 'git-hub')
+    path_prs = pjoin(path_github, 'pull-requests.toml')
     try:
-        path_git = path_to_git()
-        path_github = pjoin(path_git, 'git-hub')
-        path_prs = pjoin(path_github, 'pull-requests.toml')
         with open(path_prs, "r") as f:
-            pr_dict = toml.load(f)      # fetches toml file and creates a dictionary
+            pr_dict = toml.load(f) # fetches toml file and creates a dictionary
             open_dict = pr_dict['open pull requests']
             closed_dict = pr_dict['closed pull requests']
     except (OSError, IOError) as e:
-        # if pull-requests.toml hasnt been created yet calls sync and then reties to fetch
+        # if pull-requests.toml hasnt been created yet 
+        # calls sync and then reties to fetch
         sync()
         get_info(pr_num)
 
@@ -325,15 +328,14 @@ def search(keyword, user, comment, number, branch, opened_or_closed, label, sort
     branch : string
         Search by PR branch
     """
+    open_prs = False
+    closed_prs = False
+    path_git = path_to_git()
+    path_github = pjoin(path_git, 'git-hub')
+    path_prs = pjoin(path_github, 'pull-requests.toml')
     try:
-        open_prs = False
-        closed_prs = False
-        path_git = path_to_git()
-        path_github = pjoin(path_git, 'git-hub')
-        path_prs = pjoin(path_github, 'pull-requests.toml')
         with open(path_prs, "r") as f:
             pr_dict = toml.load(f)      # fetches toml file and creates a dictionary
-        f.close()
     except (OSError, IOError) as e:
         # if pull-requests.toml hasnt been created yet calls sync and then reties to fetch
         sync()
@@ -410,17 +412,18 @@ def sync():
     # saves pr into toml file
     try:
         g = github.Github(token)
-        path_git = path_to_git()
-        path_github = pjoin(path_git, 'git-hub')
-        path_prs = pjoin(path_github, 'pull-requests.toml')
-        if not os.path.isdir(path_github):
-            os.makedirs(path_github)
-
-        to_write = "[['open pull requests']]\n"   # later will be convereted to toml to store
     except github.BadCredentialsException as e:
         print(e)
         print("The authentification token is not valid.")
         sys.exit(1)
+
+    path_git = path_to_git()
+    path_github = pjoin(path_git, 'git-hub')
+    path_prs = pjoin(path_github, 'pull-requests.toml')
+    if not os.path.isdir(path_github):
+        os.makedirs(path_github)
+
+    to_write = "[['open pull requests']]\n"   # later will be convereted to toml to store
 
     # creates dictionaries in toml format as we scan though pull requests
     open_prs = g.get_user(username).get_repo(repo).get_pulls("open")
