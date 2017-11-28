@@ -16,4 +16,4 @@ script:
   - cd docs
   - make html
   - cd ..
-  - doctr deploy . --built-docs path/to/built/html/
+  - doctr deploy . --built-docs docs/_build
