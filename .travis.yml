@@ -7,7 +7,7 @@ python:
 sudo: false
 env:
   global:
-    secure: "<your secure key from Doctr here>"
+    secure: "xv1+7hEi37rUO1uhuh2QbEl/HNALz6EezUrg7x4KdQBRe4Y0MoVFuWT01Am+6xaHhWxIt0V7Na61s0j7Ec/uBMcoANcpaEkgz36a5RNohn0/JradJUQn0xBsyAP+IK3Ncy3teeNAZMEzSui68UvFO4n/rDH3RPPiksDPLiJk9M7j6jjIXsPEVqb9PLXp1n1eQlyFjEWmusZJFYXIxTN9NEkHCWlnhUSvorCVZuuAE/7ppf0T4a75dD2wd3CC5aPzuA8JPg5tcaFdlczYK0srLW6Yg7onFb0sYnKvpezygSrYTTzmX+ExaWLOwTaP0thKyhOeJ32Z04BHn1x986cACjzNdDlJUPDXzTn4IN+nlIkAwX9QjOACDdKfHe4wyruof2kdxz2AMah5+12eNCaz0CWs4FpnUqTtuLA0LCNgV/qM92BWyBItcH+utGsih2mkZiMiMRunBc0V4sjfcYbOCobXMi+PiTgKT7Ttd21PyNqKyftwYRndkqonWtMMwHdquB9/7ZcJPwqE2PWxU4q2gZFMDIaivyD2JGq0ZVXhikO0s85NIz3+6/nWz9c/Hl7Ccl921FilGykIC+/0f7UZc6AvtnMfd+Y8m7Q4AuufX7QmoTsBfsBRBEoCf0PESukNEtzJvUMG+6pZwbO/XD0IVsZqUOv6wsnvjdSuT63yIJA="
 
 
 script:
