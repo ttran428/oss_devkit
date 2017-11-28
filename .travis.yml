@@ -7,7 +7,7 @@ python:
 sudo: false
 env:
   global:
-    secure:  "xv1+7hEi37rUO1uhuh2QbEl/HNALz6EezUrg7x4KdQBRe4Y0MoVFuWT01Am+6xaHhWxIt0V7Na61s0j7Ec/uBMcoANcpaEkgz36a5RNohn0/JradJUQn0xBsyAP+IK3Ncy3teeNAZMEzSui68UvFO4n/rDH3RPPiksDPLiJk9M7j6jjIXsPEVqb9PLXp1n1eQlyFjEWmusZJFYXIxTN9NEkHCWlnhUSvorCVZuuAE/7ppf0T4a75dD2wd3CC5aPzuA8JPg5tcaFdlczYK0srLW6Yg7onFb0sYnKvpezygSrYTTzmX+ExaWLOwTaP0thKyhOeJ32Z04BHn1x986cACjzNdDlJUPDXzTn4IN+nlIkAwX9QjOACDdKfHe4wyruof2kdxz2AMah5+12eNCaz0CWs4FpnUqTtuLA0LCNgV/qM92BWyBItcH+utGsih2mkZiMiMRunBc0V4sjfcYbOCobXMi+PiTgKT7Ttd21PyNqKyftwYRndkqonWtMMwHdquB9/7ZcJPwqE2PWxU4q2gZFMDIaivyD2JGq0ZVXhikO0s85NIz3+6/nWz9c/Hl7Ccl921FilGykIC+/0f7UZc6AvtnMfd+Y8m7Q4AuufX7QmoTsBfsBRBEoCf0PESukNEtzJvUMG+6pZwbO/XD0IVsZqUOv6wsnvjdSuT63yIJA="
+    secure:  "nlX2Enayg5rzpC/XZS05dQXgDDyN0Wx4P6RXPXIykrsvEBZuLBd4CGcTIUcBmgeizoHAYSGy/GCfwEuVHXFBDnOHndx6e5R0S+rLblwheObMIiqfklmHgUVcsDxmdyd7ziwAQswAjb0YfUqN+Kiewyed5ClvyAbBoUOKPO6sfrmEFRCksaAN4uwx6wue30dW3OPV75HqET1+BLw6PNFXDZpimzF9eQXPFtyeZ/FH088P9TfMw4EXpngiypNE1Y8SJppgRf/PuWiM7yZbYwYq318XnIV5wnd1TmH51ER3VV+JzRqHweb2OrUOTXfbsd+bXYv9p/A7fq99/FYqjGPIn/8iGK7qGoi+nypgv/TjbXUvbdJXSoPaWhshF8Oq+wmMnJuFcd1rRC52aJs5grjgw/la4G5vhvYxGyEsDbYFC67eemy+SRNOFeT7om4qhMVyymZzL+gw6BQHOqhjtsvaVGsRDcYck6vv4ZGtlu0CiqUF8wRkYbFxgoy4NIiqqAsY5NInBhPfJxZEqpcXmh8GVQlMyRUx+N54stG1cxe9ndsp/YSAzgfKHRjvLX4qobtitVkCatII6GkPhhrS9xBAFaq9EjTQ2RDZk5mbO7D16GQK5eUslFL5Dh4zhVK5o7XXmw/2ucUiWMdUfjXuuS7cLI1T+y2XKPgft7bdO8niMyQ="
 
 # This is the script to build the docs on travis, then deploy
 script:
@@ -16,4 +16,4 @@ script:
   - cd docs
   - make html
   - cd ..
-  - doctr deploy . --built-docs /docs/_build
+  - doctr deploy . --built-docs ./docs/_build
