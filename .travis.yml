@@ -1,0 +1,19 @@
+
+language: python
+python:
+  - 3.6
+
+
+sudo: false
+env:
+  global:
+    secure: "<your secure key from Doctr here>"
+
+
+script:
+  - set -e
+  - pip install doctr
+  - cd docs
+  - make html
+  - cd ..
+  - doctr deploy . --built-docs path/to/built/html/
