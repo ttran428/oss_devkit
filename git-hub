@@ -8,23 +8,21 @@ import textwrap
 import json
 import toml
 import os
+from datetime import datetime
 from urllib.request import urlopen, Request
-from os.path import join as pjoin
 
+from os.path import join as pjoin
 
 def login():
     """Retrieves the user's remote.
-
-    This will run the command "git remote -v",
-    then abstract the username and repo from the remote.
-
     Returns
     -------
     username : string
         username of the remote
     repo : string
         repository of the remote
-
+    remote : string
+        returns remotes
     """
     process = subprocess.Popen(["git", "remote", "-v"], stdout=subprocess.PIPE)
     remotes = str(process.stdout.read())
@@ -36,32 +34,30 @@ def login():
     return (username, repo, remotes)
 
 
-def getToken():
-    """Will get token from authentification file
-
+def get_token():
+    """Retrieve token from configuration file.
     Returns
     -------
     token : string
-        a number corresponding to user's
-        authentification
+        a number corresponding to user's authentication
     """
-    try:
+    token = ""
+    if os.path.isfile(os.path.expanduser("~/.config/git-hub.yaml")):
         with open(os.path.expanduser("~/.config/git-hub.yaml")) as stream:
             yaml_file = str(yaml.load(stream))
             token = yaml_file.split("=")[1].strip()
-            return token
+    else:
+        token = os.environ['GITHUB_TOKEN']
 
-    except (IndexError, FileNotFoundError) as e:
+    if (token is not ""):
+        return token
+    else:
         print(textwrap.dedent("""\
             No authentication token specified in: ~/.config/git-hub.yaml
-
             Please see
-
               https://help.github.com/articles/creating-a-personal-access-token-for-the-command-line/
-
-            for instruction on obtaining a token. Then update the configuration
+            for instruction on obtaining a token.  Then update the configuration
             file as follows:
-
               token = abc123
         """))
         sys.exit(1)
@@ -69,24 +65,49 @@ def getToken():
 
 def pr(num):
     """Pulls down and checkout the branch of the pr.
-
     This will run the following commands in the terminal:
     "git remote add user git@github.com:user/repo",
     "git fetch user",
     "git checkout -b pr/num user/branch"
-
     Parameters
     ----------
     num : integer
         The number of the pull request.
     """
     username, repo, remotes = login()
-    token = getToken()
+    token = get_token()
 
     # gets pr and runs command.
     try:
         g = github.Github(token)
         pr = g.get_user(username).get_repo(repo).get_pull(num)
+        label = pr.head.label
+        other_user, branch = label.split(":")
+        process = subprocess.Popen(["git", "remote", "-v"], stdout=subprocess.PIPE)
+        remotes = str(process.stdout.read())
+        remote_name = "\\n" + other_user + "\\t"
+        if remote_name not in remotes:
+            p = subprocess.Popen(["git", "remote", "add", other_user, f'git@github.com:{other_user}/{repo}'])
+            p.communicate()
+        p = subprocess.Popen(["git", "fetch", other_user],
+                             stdout=subprocess.PIPE)
+        p.stdout.read()
+        subprocess.Popen(["git", "checkout", "-b",
+                         f'pr/{num}', f'{other_user}/{branch}'])
+        file_path = path_to_git()
+        file_path = os.path.join(file_path, '.git_hub_cache')
+        with open(file_path, "a+") as f:
+            if os.stat(file_path).st_size == 0:  # check if empty
+                f.write("#This file contains metadata about pull requests. \n")
+        f.close()
+        with open(file_path, "r") as f:
+            pr_dict = toml.load(f)
+        f.close()
+        if f'pr/{num}' not in pr_dict:
+            with open(file_path, "a") as f:
+                f.write((f"\n ['pr/{num}'] \n'branch' = '{branch}' \n"
+                        f"'user' = '{other_user}' \n"))
+            f.close()
 
     except github.BadCredentialsException as e:
         print(e)
@@ -98,132 +119,93 @@ def pr(num):
         print(f'There is no pr with number {num}.')
         sys.exit(1)
 
-    label = pr.head.label
-    other_user, branch = label.split(":")
-    process = subprocess.Popen(["git", "remote", "-v"], stdout=subprocess.PIPE)
-    remotes = str(process.stdout.read())
-    remote_name = "\\n" + other_user + "\\t"
-    if remote_name not in remotes:
-        p = subprocess.Popen(["git", "remote", "add", other_user,
-                              f'git@github.com:{other_user}/{repo}'])
-        p.communicate()
-    p = subprocess.Popen(["git", "fetch", other_user],
-                         stdout=subprocess.PIPE)
-    p.stdout.read()
-    subprocess.Popen(["git", "checkout", "-b",
-                     f'pr/{num}', f'{other_user}/{branch}'])
-    file_path = path_to_git()
-    file_path = os.path.join(file_path, '.git_hub_cache')
-    try:
-        with open(file_path, "a+") as f:
-            if os.stat(file_path).st_size == 0:  # check if empty
-                f.write("#This file contains metadata about pull requests. \n")
-    except IOError as e:
-        print(e)
-        print("Could not create or append file.")
-        sys.exit(1)
-    try:
-        with open(file_path, "r") as f:
-            pr_dict = toml.load(f)
-    except IOError as e:
-        print(e)
-        print("Could not read and load toml file.")
-    if f'pr/{num}' not in pr_dict:
-        try:
-            with open(file_path, "a") as f:
-                f.write((f"\n ['pr/{num}'] \n'branch' = '{branch}' \n"
-                        f"'user' = '{other_user}' \n"))
-        except IOError as e:
-            print(e)
-            print("Could not append information to metadata.")
-
 
 def push():
     """Pushes changes back to a branch.
-
     This will run the following command:
     "git push user pr/num:branch"
-
     """
     p = subprocess.Popen("git branch", stdout=subprocess.PIPE)
     pr = str(p.stdout.read())
     pr = pr.split("*", 1)[1].split()[0]
     pr = pr.replace("\\n", "").replace(" ", "").replace("'", "")
-    file_path = path_to_git()
-    file_path = os.path.join(file_path, '.git_hub_cache')
     try:
-        with open(file_path, "r") as f:
-            pr_dict = toml.load(f)
+        file_path = path_to_git()
+        file_path = os.path.join(file_path, '.git_hub_cache')
+        f = open(file_path, "r")
+        pr_dict = toml.load(f)
+        user = pr_dict[pr]['user']
+        branch = pr_dict[pr]["branch"]
+        p = subprocess.Popen(["git", "push", user,
+                             f'{pr}:{branch}'], stdout=subprocess.PIPE)
+        p.stdout.read()
     except FileNotFoundError as e:
         print(e)
         print("This command must be used after git hub pr.")
         sys.exit(1)
-    user = pr_dict[pr]['user']
-    branch = pr_dict[pr]["branch"]
-    p = subprocess.Popen(["git", "push", user,
-                         f'{pr}:{branch}'], stdout=subprocess.PIPE)
-    p.stdout.read()
 
 
 def path_to_git():
+    """Finds path to .git folder
+    """
     path_repo = os.path.abspath('.')
     # if not in directory with .git, keep going back to find file
-    while (os.path.abspath(path_repo) != '/'
-           and not os.path.isdir(pjoin(path_repo, '.git'))):
+    while os.path.abspath(path_repo) != '/' and not os.path.isdir(pjoin(path_repo, '.git')):
         path_repo = pjoin(path_repo, '..')
     path_git = pjoin(path_repo, ".git")
     return path_git
 
-
-def find_in_dictionary(pr_num, open_or_closed_dictionary):
-    """Fetches all the information on a certain PR
-
-    Parameters
-    ----------
-    pr_num : integer
-        number of PR to fetch information from
-    open_or_closed_dictionary : dictionary
-        dictionary of open or closed PRs to find number in
+def path_to_toml():
+    """Finds path to pull-requests.toml
     """
-    if(open_or_closed_dictionary is None):
-        return None, None
-    for dictionary in open_or_closed_dictionary:
-        for sub_keys in list(dictionary.keys()):
-            if(sub_keys == str(pr_num)):
-                return sub_keys, dictionary[sub_keys]
-    return None, None
-
-
-def get_info(pr_num):
-    """Fetches all the information on a certain PR
-
-    Parameters
-    ----------
-    pr_num : integer
-        number of PR to fetch information from
-    """
-
     path_git = path_to_git()
     path_github = pjoin(path_git, 'git-hub')
     path_prs = pjoin(path_github, 'pull-requests.toml')
+    return path_prs
+
+def find_in_dictionary(pr_data, open_or_closed_dictionary):
+    """Fetches all the information on a certain PR
+    Parameters
+    ----------
+    Pr_data : integer
+        number of PR to fetch information from
+    Open_or_closed_dictionary : dictionary
+        dictionary of open or closed PRs to find number in
+    """
+    if(open_or_closed_dictionary is not None):
+        for dictionary in open_or_closed_dictionary:
+            for sub_keys in list(dictionary.keys()):
+                if(sub_keys == str(pr_data)):
+                    return sub_keys, dictionary[sub_keys]
+    return None, None
+
+
+def get_info(pr_data):
+    """Fetches all the information on a certain PR
+    Parameters
+    ----------
+    Pr_data : integer
+        number of PR to fetch information from
+    """
+
     try:
-        with open(path_prs, "r") as f:
-            pr_dict = toml.load(f) # fetches toml file and creates a dictionary
-            open_dict = pr_dict['open pull requests']
-            closed_dict = pr_dict['closed pull requests']
+        path_prs = path_to_toml()
+        f = open(path_prs, "r")
+        pr_dict = toml.load(f)      # fetches toml file and creates a dictionary
+        open_dict = pr_dict['open pull requests']
+        closed_dict = pr_dict['closed pull requests']
     except (OSError, IOError) as e:
-        # if pull-requests.toml hasnt been created yet 
-        # calls sync and then reties to fetch
+        # if pull-requests.toml hasnt been created yet calls sync and then reties to fetch
         sync()
-        get_info(pr_num)
+        get_info(pr_data)
 
     open_PR = "O"
-    key, pr_dictionary = find_in_dictionary(pr_num, open_dict)
+    key, pr_dictionary = find_in_dictionary(pr_data, open_dict)
     if(pr_dictionary is None):
         open_PR = "C"
-        key, pr_dictionary = find_in_dictionary(pr_num, closed_dict)
+        key, pr_dictionary = find_in_dictionary(pr_data, closed_dict)
     if(pr_dictionary is None):
-        click.echo("Could not find PR #{}. Run 'git hub sync' and try again.".format(pr_num))
+        click.echo("Could not find PR #{}. Run 'git hub sync' and try again.".format(pr_data))
     else:
         reviewers = "None"
         if(pr_dictionary['reviewers'] is not ""):
@@ -237,22 +219,61 @@ def get_info(pr_num):
         labels = "None"
         if(pr_dictionary['labels'] is not ""):
             labels = pr_dictionary['labels']
-        click.echo('{0} \x1b[0;32;40m {1} \x1b[0m {2}/{3} {4}'.format(key, open_PR, pr_dictionary['user'], pr_dictionary['branch'], pr_dictionary['comment']))
-        click.echo('-Labels: {0}  -Reviewers: {1}  -Assignees: {2}  -Milestones: {3}'.format(labels, reviewers, assignee, milestone))
+        branch = "None"
+        if(pr_dictionary['branch'] is not ""):
+            branch = pr_dictionary['branch']
+        commits = "None"
+        if(pr_dictionary['commits'] is not ""):
+            commits = pr_dictionary['commits']
+        most_recent_comment = "None"
+        if(pr_dictionary['most_recent_comment'] is not ""):
+            most_recent_comment = parse_time(pr_dictionary['most_recent_comment'])
+        comment_count = "None"
+        if(pr_dictionary['comment_count'] is not ""):
+            comment_count = pr_dictionary['comment_count']
+        created_at = "None"
+        if(pr_dictionary['created_at'] is not ""):
+            created_at = parse_time(pr_dictionary['created_at'])
+        updated_at = "None"
+        if(pr_dictionary['updated_at'] is not ""):
+            updated_at = parse_time(pr_dictionary['updated_at'])
+        GREEN = '\x1b[0;32;40m'
+        CLOSE = '\x1b[0m'
+        click.echo('{0} {1} {2} {3} {4}/{5} {6}'.format(key, GREEN, open_PR, CLOSE, pr_dictionary['user'], pr_dictionary['branch'], pr_dictionary['comment']))
+        click.echo('-Created at: {0}  -Updated at: {1}'.format(created_at, updated_at))
+        click.echo('-Commits: {0}  -Comment count: {1}  -Most recent comment: {2}'.format(commits, comment_count, most_recent_comment))
+        click.echo('-Labels: {0}  -Reviewers: {1}  -Branch: {2}  -Assignees: {3}  -Milestones: {4}'.format(labels, reviewers, branch, assignee, milestone))
 
-
-def print_in_order(sort, dict):
+def parse_time(time):
     """
-    Prints items in q sorted by order given by sort
-
+    Converts time into python datetime object
     Parameters
     ----------
-    sort : string
-        sort in increasing or decreasing order
-    q : PriorityQueue
-        items to be sorted, currently in increasing order
+    Time : String
+        Time that git-hub gives
     """
-    if(sort.startswith('i')):
+    date = time.split('T')[0]
+    time = time.split('T')[1][:-1]
+    year, date = date.split('-', 1)
+    month, date = date.split('-', 1)
+    day = date
+    hour, time = time.split(':',1)
+    minute, time = time.split(':',1)
+    second = time
+    d = datetime(int(year), int(month), int(day), int(hour), int(minute), int(second))
+    return d
+
+def print_in_order(dict, increasing=False):
+    """
+    Prints items in q sorted by order given by sort
+    Parameters
+    ----------
+    Q : PriorityQueue
+        items to be sorted, currently in increasing order
+    Inreasing : boolean
+        tells if the user wants dates in order of most recent first
+    """
+    if(increasing):
         sorted_list = sorted(dict)
         for x in sorted_list:
             click.echo("{0} : {1}".format(dict[x], x[:10]))
@@ -264,38 +285,45 @@ def print_in_order(sort, dict):
 
 def find_match(open_or_closed, list_of_dictionaries, keyword, user, comment, number, branch, label):
     """Helper function that finds all matches in the given dictionary that fits the specified parameters
-
     Parameters
     ----------
-    open_or_closed : boolean
+    Open_or_closed : boolean
         Whether looking in closed PR or open PR
-    dictionary : dictionary
+    List_of_dictionaries : dictionary
         pull-requests.toml information mapping PR number to info
-    keyword : string
+    Keyword : string
         Searches if any part of user, branch, comment, or number match
-    user : string
+    User : string
         Search by PR username
-    comment : string
+    Comment : string
         Search by PR comment
-    number : string
+    Number : string
         Search by PR number
-    branch : string
+    Branch : string
         Search by PR branch
-    appeared_before : boolean
+    Returns
+    ----------
+    Appeared_before : boolean
         Whether the search match is the first match
+    All_prs : list
+        All the prs that match the criteria
     """
     appeared_before = False
     all_prs = {}
+    GREEN = '\x1b[0;32;40m'
+    RED = '\x1b[0;31;40m'
+    CLOSE = '\x1b[0m'
     for dictionary in list_of_dictionaries:        # iterates through and checks if open pull requsts have keyword
         for sub_keys in list(dictionary.keys()):
             sub_dictionary = dictionary[sub_keys]
             if keyword:         # checks keyword
-                if keyword.upper() in sub_dictionary.keys().upper() or keyword in sub_dictionary.values().upper():
+                concate = " ".join(sub_dictionary.values())
+                if keyword.upper() in concate.upper():
                     appeared_before = True
                     if(open_or_closed):
-                        all_prs[sub_dictionary['modified']] = '{0} \x1b[0;32;40m {1} \x1b[0m {2}/{3} {4}'.format(sub_keys, "O", sub_dictionary['user'], sub_dictionary['branch'], sub_dictionary['comment'])
+                        all_prs[sub_dictionary['modified']] = '{0} {1} {2} {3} {4}/{5} {6}'.format(sub_keys, GREEN, "O", CLOSE, sub_dictionary['user'], sub_dictionary['branch'], sub_dictionary['comment'])
                     else:
-                        all_prs[sub_dictionary['modified']] = '{0} \x1b[0;31;40m {1} \x1b[0m {2}/{3} {4}'.format(sub_keys, "C", sub_dictionary['user'], sub_dictionary['branch'], sub_dictionary['comment'])
+                        all_prs[sub_dictionary['modified']] = '{0} {1} {2} {3} {4}/{5} {6}'.format(sub_keys, RED, "C", CLOSE, sub_dictionary['user'], sub_dictionary['branch'], sub_dictionary['comment'])
             else:               # checks for all other parameters
                 temp_user = sub_dictionary['user']
                 temp_branch = sub_dictionary["branch"]
@@ -304,38 +332,34 @@ def find_match(open_or_closed, list_of_dictionaries, keyword, user, comment, num
                 if label.upper() in temp_label.upper() and comment.upper() in temp_comment.upper() and user.upper() in temp_user.upper() and branch.upper() in temp_branch.upper():
                     appeared_before = True
                     if(open_or_closed):
-                        all_prs[sub_dictionary['modified']] = '{0} \x1b[0;32;40m {1} \x1b[0m {2}/{3} {4}'.format(sub_keys, "O", sub_dictionary['user'], sub_dictionary['branch'], sub_dictionary['comment'])
+                        all_prs[sub_dictionary['modified']] = '{0} {1} {2} {3} {4}/{5} {6}'.format(sub_keys, GREEN, "O", CLOSE, sub_dictionary['user'], sub_dictionary['branch'], sub_dictionary['comment'])
                     else:
-                        all_prs[sub_dictionary['modified']] = '{0} \x1b[0;31;40m {1} \x1b[0m {2}/{3} {4}'.format(sub_keys, "C", sub_dictionary['user'], sub_dictionary['branch'], sub_dictionary['comment'])
+                        all_prs[sub_dictionary['modified']] = '{0} {1} {2} {3} {4}/{5} {6}'.format(sub_keys, RED, "C", CLOSE, sub_dictionary['user'], sub_dictionary['branch'], sub_dictionary['comment'])
     return appeared_before, all_prs
 
 
 def search(keyword, user, comment, number, branch, opened_or_closed, label, sort):
     """Searches open and closed pull request comments for specified keyword.
-
     Opens pull-requests.toml file in .git folder to fetch pull requests.
-
     Parameters
     ----------
-    keyword : string
+    Keyword : string
         Searches if any part of user, branch, comment, or number match
-    user : string
+    User : string
         Search by PR username
-    comment : string
+    Comment : string
         Search by PR comment
-    number : string
+    Number : string
         Search by PR number
-    branch : string
+    Branch : string
         Search by PR branch
     """
-    open_prs = False
-    closed_prs = False
-    path_git = path_to_git()
-    path_github = pjoin(path_git, 'git-hub')
-    path_prs = pjoin(path_github, 'pull-requests.toml')
     try:
-        with open(path_prs, "r") as f:
-            pr_dict = toml.load(f)      # fetches toml file and creates a dictionary
+        open_prs = False
+        closed_prs = False
+        path_prs = path_to_toml()
+        f = open(path_prs, "r")
+        pr_dict = toml.load(f)      # fetches toml file and creates a dictionary
     except (OSError, IOError) as e:
         # if pull-requests.toml hasnt been created yet calls sync and then reties to fetch
         sync()
@@ -345,28 +369,28 @@ def search(keyword, user, comment, number, branch, opened_or_closed, label, sort
     closed_dict = pr_dict['closed pull requests']
     if(not opened_or_closed or opened_or_closed.lower() == 'open'):
         open_prs, q = find_match(True, open_dict, keyword, user, comment, number, branch, label)
-        print_in_order(sort, q)
+        print_in_order(q, sort.startswith('i'))
     if(not opened_or_closed or opened_or_closed.lower() == 'closed'):
         closed_prs, q = find_match(False, closed_dict, keyword, user, comment, number, branch, label)
-        print_in_order(sort, q)
+        print_in_order(q, sort.startswith('i'))
     if not open_prs and not closed_prs:     # outputs if keyword was not contained in pull requets comments
         click.echo("Could not find in pull requests. Update your pull requests with 'git hub sync' and try again.")
 
 
 def json_to_toml(username, repo, pr, token, open_or_closed):
-    """Helper function that finds all the information we want to record from the json file
-
+    """Helper function that finds all the information we want to record from the
+    json file and converts it to toml format syntax
     Parameters
     ----------
-    username : string
+    Username : string
         username created of PR
-    repo : string
+    Repo : string
         repo user created PR from
-    pr : integer
+    Pr : integer
         PR id number
-    token : string
+    Token : string
         authentication token for user
-    open_or_closed : string
+    Open_or_closed : string
         if the PR is open or closed
     """
     to_write = ""
@@ -376,10 +400,17 @@ def json_to_toml(username, repo, pr, token, open_or_closed):
     response = urlopen(request)
     response = json.loads(response.read().decode('utf-8'))
     to_write = to_write + "['{0} pull requests'.{1}]\n".format(open_or_closed, pr.number)
+    to_write = to_write + 'title = "{0}" \n'.format(response.get('title'))
+    to_write = to_write + 'body = "{0}" \n'.format(response.get('body'))
     to_write = to_write + 'user = "{0}" \n'.format(pr.user.name)
     to_write = to_write + 'branch = "{0}" \n'.format(response.get('head').get('ref'))
     to_write = to_write + 'comment = "{0}" \n'.format(pr.title)
+    to_write = to_write + 'commits = "{0}" \n'.format(response.get('commits'))
     to_write = to_write + 'modified = "{0}" \n'.format(pr.updated_at)
+    to_write = to_write + 'created_at = "{0}" \n'.format(response.get('created_at'))
+    to_write = to_write + 'updated_at = "{0}" \n'.format(response.get('updated_at'))
+    to_write = to_write + 'closed_at = "{0}" \n'.format(response.get('closed_at'))
+    to_write = to_write + 'merged_at = "{0}" \n'.format(response.get('merged_at'))
     reviewers = ""
     for reviewer in list(response.get('requested_reviewers')):
         reviewers = reviewers + reviewer.get('login')+", "
@@ -392,7 +423,8 @@ def json_to_toml(username, repo, pr, token, open_or_closed):
         to_write = to_write + 'milestone = "{0}" \n'.format(pr.milestone.title)
     else:
         to_write = to_write + 'milestone = "" \n'
-    issue_url = response.get('issue_url')
+
+    issue_url = response.get('issue_url')       #fetches labels attached to pull requests
     labels = ""
     issue_request = Request(issue_url)
     issue_response = urlopen(issue_request)
@@ -401,46 +433,61 @@ def json_to_toml(username, repo, pr, token, open_or_closed):
     for label in list(labels_dict):
         labels = labels + label.get('name')+", "
     to_write = to_write + 'labels = "{0}" \n'.format(labels[:-2])
+
+    comment_url = response.get('comments_url')       #fetches latest activity (comment) date
+    comment_count = 0
+    most_recent = ""
+    self_comment = False
+    comment_request = Request(comment_url)
+    comment_response = urlopen(comment_request)
+    comment_dict = json.loads(comment_response.read().decode('utf-8'))
+    for c in list(comment_dict):
+        comment_count = comment_count + 1
+        date = c.get('updated_at')
+        if most_recent == "" or date > most_recent:
+            most_recent = date
+        commenter = c.get('user').get('login')
+        if commenter == username:
+            self_comment = True
+    to_write = to_write + 'comment_count = "{0}" \n'.format(comment_count)
+    to_write = to_write + 'most_recent_comment = "{0}" \n'.format(most_recent)
+    to_write = to_write + 'self_comment = "{0}" \n'.format(self_comment)
     return to_write
 
 
 def sync():
     """Updates and saves pull-requests in pull-requests.toml in the .git folder. """
     username, repo, remotes = login()
-    token = getToken()
+    token = get_token()
 
     # saves pr into toml file
     try:
         g = github.Github(token)
+        path_git = path_to_git()
+        path_github = pjoin(path_git, 'git-hub')
+        path_prs = pjoin(path_github, 'pull-requests.toml')
+        if not os.path.isdir(path_github):
+            os.makedirs(path_github)
+        f = open(path_prs, "w")
+        to_write = "[['open pull requests']]\n"   # later will be convereted to toml to store
     except github.BadCredentialsException as e:
         print(e)
-        print("The authentification token is not valid.")
+        click.echo("The authentification token is not valid.")
         sys.exit(1)
-
-    path_git = path_to_git()
-    path_github = pjoin(path_git, 'git-hub')
-    path_prs = pjoin(path_github, 'pull-requests.toml')
-    if not os.path.isdir(path_github):
-        os.makedirs(path_github)
-
-    to_write = "[['open pull requests']]\n"   # later will be convereted to toml to store
 
     # creates dictionaries in toml format as we scan though pull requests
     open_prs = g.get_user(username).get_repo(repo).get_pulls("open")
     for pr in open_prs:
         to_write = to_write + json_to_toml(username, repo, pr, token, "open")
-    to_write = to_write[:-2]+'\n'
+    to_write = to_write[:-1]+'\n'
     to_write = to_write + "[['closed pull requests']] \n"
     closed_prs = g.get_user(username).get_repo(repo).get_pulls("closed")
     for pr in closed_prs:
         to_write = to_write + json_to_toml(username, repo, pr, token, "closed")
     # converts it to toml and stores in file
     toml_string = toml.loads(to_write)
-    try:
-        with open(path_prs, "w") as f:
-            toml.dump(toml_string, f)
-    except IOError as e:
-        print(e)
+    toml.dump(toml_string, f)
+
 
 @click.group()
 def cli():
@@ -455,10 +502,9 @@ def cli():
 @click.option('--branch', '-b', default="", help="search by branch")
 @click.option('--comment', '-c', default="", help="search by comment")
 @click.option('--number', '-n', default="", help="search by PR number")
-@click.option('--keyword', '-k', default="", help="search by all parameters")
 @click.option('--sort', '-s', default="", help="sort PRs by increasing or decreasing date")
 @click.option('--label', '-l', default="", help="search PR by label")
-def hub(command, args, user, comment, number, keyword, branch, sort, opened, label):
+def hub(command, args, user, comment, number, branch, sort, opened, label):
     if command == "pr":
         pr_num = int(args[0])
         pr(pr_num)
@@ -467,8 +513,10 @@ def hub(command, args, user, comment, number, keyword, branch, sort, opened, lab
         push()
 
     elif command == "search":
-        search(keyword, user, comment, number, branch, opened, label, sort)
-
+        if(args == None):
+            search(None, user, comment, number, branch, opened, label, sort)
+        else:
+            search(" ".join(args), user, comment, number, branch, opened, label, sort)
     elif command == "sync":
         sync()
 
