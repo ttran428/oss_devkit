@@ -23,6 +23,7 @@ def path_to_toml():
 def week_old_comments():
     """Main function to find PRs that haven't been commented on in over a week
     """
+    print("main function")
     try:
         path_prs = path_to_toml()
         f = open(path_prs, "r")
@@ -37,6 +38,7 @@ def week_old_comments():
 def find_week_old_comments(list_of_dictionaries):
     """Helper function that finds all PRs in a dictionary that are over a week old
     """
+    print("helper function")
     all_prs = []
     for dictionary in list_of_dictionaries:
         for sub_keys in list(dictionary.keys()):

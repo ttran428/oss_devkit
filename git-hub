@@ -7,14 +7,16 @@ import sys
 import textwrap
 import json
 import toml
+import app
 import os
 from datetime import datetime
 from urllib.request import urlopen, Request
-
 from os.path import join as pjoin
+
 
 def login():
     """Retrieves the user's remote.
+
     Returns
     -------
     username : string
@@ -23,6 +25,7 @@ def login():
         repository of the remote
     remote : string
         returns remotes
+
     """
     process = subprocess.Popen(["git", "remote", "-v"], stdout=subprocess.PIPE)
     remotes = str(process.stdout.read())
@@ -36,6 +39,7 @@ def login():
 
 def get_token():
     """Retrieve token from configuration file.
+
     Returns
     -------
     token : string
@@ -54,10 +58,14 @@ def get_token():
     else:
         print(textwrap.dedent("""\
             No authentication token specified in: ~/.config/git-hub.yaml
+
             Please see
+
               https://help.github.com/articles/creating-a-personal-access-token-for-the-command-line/
+
             for instruction on obtaining a token.  Then update the configuration
             file as follows:
+
               token = abc123
         """))
         sys.exit(1)
@@ -65,10 +73,12 @@ def get_token():
 
 def pr(num):
     """Pulls down and checkout the branch of the pr.
+
     This will run the following commands in the terminal:
     "git remote add user git@github.com:user/repo",
     "git fetch user",
     "git checkout -b pr/num user/branch"
+
     Parameters
     ----------
     num : integer
@@ -122,8 +132,10 @@ def pr(num):
 
 def push():
     """Pushes changes back to a branch.
+
     This will run the following command:
     "git push user pr/num:branch"
+
     """
     p = subprocess.Popen("git branch", stdout=subprocess.PIPE)
     pr = str(p.stdout.read())
@@ -139,6 +151,7 @@ def push():
         p = subprocess.Popen(["git", "push", user,
                              f'{pr}:{branch}'], stdout=subprocess.PIPE)
         p.stdout.read()
+        print(["git", "push", user, f'{pr}:{branch}'])
     except FileNotFoundError as e:
         print(e)
         print("This command must be used after git hub pr.")
@@ -165,6 +178,7 @@ def path_to_toml():
 
 def find_in_dictionary(pr_data, open_or_closed_dictionary):
     """Fetches all the information on a certain PR
+
     Parameters
     ----------
     Pr_data : integer
@@ -182,6 +196,7 @@ def find_in_dictionary(pr_data, open_or_closed_dictionary):
 
 def get_info(pr_data):
     """Fetches all the information on a certain PR
+
     Parameters
     ----------
     Pr_data : integer
@@ -247,6 +262,7 @@ def get_info(pr_data):
 def parse_time(time):
     """
     Converts time into python datetime object
+
     Parameters
     ----------
     Time : String
@@ -263,9 +279,11 @@ def parse_time(time):
     d = datetime(int(year), int(month), int(day), int(hour), int(minute), int(second))
     return d
 
+
 def print_in_order(dict, increasing=False):
     """
     Prints items in q sorted by order given by sort
+
     Parameters
     ----------
     Q : PriorityQueue
@@ -285,6 +303,7 @@ def print_in_order(dict, increasing=False):
 
 def find_match(open_or_closed, list_of_dictionaries, keyword, user, comment, number, branch, label):
     """Helper function that finds all matches in the given dictionary that fits the specified parameters
+
     Parameters
     ----------
     Open_or_closed : boolean
@@ -301,6 +320,7 @@ def find_match(open_or_closed, list_of_dictionaries, keyword, user, comment, num
         Search by PR number
     Branch : string
         Search by PR branch
+
     Returns
     ----------
     Appeared_before : boolean
@@ -340,7 +360,9 @@ def find_match(open_or_closed, list_of_dictionaries, keyword, user, comment, num
 
 def search(keyword, user, comment, number, branch, opened_or_closed, label, sort):
     """Searches open and closed pull request comments for specified keyword.
+
     Opens pull-requests.toml file in .git folder to fetch pull requests.
+
     Parameters
     ----------
     Keyword : string
@@ -380,6 +402,7 @@ def search(keyword, user, comment, number, branch, opened_or_closed, label, sort
 def json_to_toml(username, repo, pr, token, open_or_closed):
     """Helper function that finds all the information we want to record from the
     json file and converts it to toml format syntax
+
     Parameters
     ----------
     Username : string
@@ -465,7 +488,7 @@ def sync():
         g = github.Github(token)
         path_git = path_to_git()
         path_github = pjoin(path_git, 'git-hub')
-        path_prs = pjoin(path_github, 'pull-requests.toml')
+        path_prs = path_to_toml()
         if not os.path.isdir(path_github):
             os.makedirs(path_github)
         f = open(path_prs, "w")
@@ -488,11 +511,13 @@ def sync():
     toml_string = toml.loads(to_write)
     toml.dump(toml_string, f)
 
+def render():
+    app.main()
+
 
 @click.group()
 def cli():
     pass
-
 
 @cli.command()
 @click.argument("command", default="")
@@ -523,6 +548,9 @@ def hub(command, args, user, comment, number, branch, sort, opened, label):
     elif command == "info":
         pr_num = int(args[0])
         get_info(pr_num)
+
+    elif command == "render":
+        render()
 
     else:
         print("invalid command")
