@@ -14,6 +14,7 @@ from urllib.request import urlopen, Request
 from os.path import join as pjoin
 
 
+
 def login():
     """Retrieves the user's remote.
 
@@ -409,8 +410,8 @@ def json_to_toml(username, repo, pr, token, open_or_closed):
         username created of PR
     Repo : string
         repo user created PR from
-    Pr : integer
-        PR id number
+    Pr : object
+        PR dictionary
     Token : string
         authentication token for user
     Open_or_closed : string
@@ -425,8 +426,9 @@ def json_to_toml(username, repo, pr, token, open_or_closed):
     to_write = to_write + "['{0} pull requests'.{1}]\n".format(open_or_closed, pr.number)
     to_write = to_write + 'title = "{0}" \n'.format(response.get('title'))
     to_write = to_write + 'body = "{0}" \n'.format(response.get('body'))
-    to_write = to_write + 'user = "{0}" \n'.format(pr.user.name)
+    to_write = to_write + 'user = "{0}" \n'.format(pr.user.login)
     to_write = to_write + 'branch = "{0}" \n'.format(response.get('head').get('ref'))
+    to_write = to_write + 'mergeable = "{0}" \n'.format(pr.mergeable)
     to_write = to_write + 'comment = "{0}" \n'.format(pr.title)
     to_write = to_write + 'commits = "{0}" \n'.format(response.get('commits'))
     to_write = to_write + 'modified = "{0}" \n'.format(pr.updated_at)
@@ -461,12 +463,14 @@ def json_to_toml(username, repo, pr, token, open_or_closed):
     comment_count = 0
     most_recent = ""
     self_comment = False
+    comment_dates = []
     comment_request = Request(comment_url)
     comment_response = urlopen(comment_request)
     comment_dict = json.loads(comment_response.read().decode('utf-8'))
     for c in list(comment_dict):
         comment_count = comment_count + 1
         date = c.get('updated_at')
+        comment_dates.append(date)
         if most_recent == "" or date > most_recent:
             most_recent = date
         commenter = c.get('user').get('login')
@@ -475,6 +479,7 @@ def json_to_toml(username, repo, pr, token, open_or_closed):
     to_write = to_write + 'comment_count = "{0}" \n'.format(comment_count)
     to_write = to_write + 'most_recent_comment = "{0}" \n'.format(most_recent)
     to_write = to_write + 'self_comment = "{0}" \n'.format(self_comment)
+    to_write = to_write + 'comment_dates = "{0}" \n'.format(comment_dates)
     return to_write
 
 
@@ -499,6 +504,7 @@ def sync():
         sys.exit(1)
 
     # creates dictionaries in toml format as we scan though pull requests
+    print(username, repo)
     open_prs = g.get_user(username).get_repo(repo).get_pulls("open")
     for pr in open_prs:
         to_write = to_write + json_to_toml(username, repo, pr, token, "open")
