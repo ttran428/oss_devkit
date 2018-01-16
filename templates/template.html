@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>PR's without recent comments</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link href="http://netdna.bootstrapcdn.com/bootstrap/3.0.0/css/bootstrap.min.css" rel="stylesheet" media="screen">
+    <style type="text/css">
+      .container {
+        padding-bottom: 30px;
+        text-align: center;
+      }
+      #center-header{
+        text-align: center;
+        padding-top: 20px;
+      }
+      ul {
+        list-style-type: none;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+       <img src="C:\Users\teddy\Desktop\ossdevkit\machine_test\test_repo\.git\git-hub\PRs.png" style="width:500px;height:400px;">
+    </div>
+    <div class="container">
+        <h3 id="center-header"> List of all PR's without comments in over a week: </h3>
+      <ul>
+        {% for n in week_old %}
+        <li>{{n}}</li>
+        {% endfor %}
+      </ul>
+    </div>
+    <div class="container">
+        <h3 id="center-header"> List of all PR's without discussion: </h3>
+      <ul>
+        {% for n in no_discussion %}
+        <li>{{n}}</li>
+        {% endfor %}
+      </ul>
+    </div>
+    <div class="container">
+        <h3 id="center-header"> List of PR's with most active comments: </h3>
+      <ul>
+        {% for n in active_prs %}
+        <li>{{n}}</li>
+        {% endfor %}
+      </ul>
+    </div>
+    <div class="container">
+        <h3 id="center-header"> List of oldest unmerged PRs: </h3>
+      <ul>
+        {% for n in oldest_prs %}
+        <li>{{n}}</li>
+        {% endfor %}
+      </ul>
+    </div>
+    <div class="container">
+        <h3 id="center-header"> All Pr's that I've commented on: </h3>
+      <ul>
+        {% for n in my_prs %}
+        <li>{{n}}</li>
+        {% endfor %}
+      </ul>
+    </div>
+    <div class="container">
+        <h3 id="center-header"> List of all unmergeable PRs: </h3>
+      <ul>
+        {% for n in unmergeable_prs %}
+        <li>{{n}}</li>
+        {% endfor %}
+      </ul>
+    </div>
+    <script src="http://code.jquery.com/jquery-1.10.2.min.js"></script>
+    <script src="http://netdna.bootstrapcdn.com/bootstrap/3.0.0/js/bootstrap.min.js"></script>
+  </body>
+</html>
