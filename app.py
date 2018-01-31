@@ -25,9 +25,15 @@ def render_pages():
     oldest = webpage.oldest_prs()
     mine = webpage.prs_with_me()
     unmergeable = webpage.unmergeable_prs()
+    #issues_no_comments = webpage.issues_no_comments()
+    #closed_pr_refer_tickets = webpage.closed_pr_refer_tickets()
+    #popular_tickets = webpage.popular_tickets()
+
     # picture = path_to_pic
     # print(picture)
     return render_template('template.html', week_old=list_of_prs, no_discussion=no_diss, active_prs=popular, oldest_prs=oldest, my_prs=mine, unmergeable_prs=unmergeable, picture="PRs.png")
+    # return render_template('template.html', week_old=list_of_prs, no_discussion=no_diss, active_prs=popular, oldest_prs=oldest, 
+    #     my_prs=mine, unmergeable_prs=unmergeable, no_disc_issues = issues_no_comments, pr_refer_tickets=closed_pr_refer_tickets, hot_tickets=popular_tickets, picture="PRs.png")
 
 
 def main():

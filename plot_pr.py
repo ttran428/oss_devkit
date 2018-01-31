@@ -34,142 +34,150 @@ releases = OrderedDict([
 
 month_duration = 24
 
-def login():
-    """Retrieves the user's remote.
-
-    Returns
-    -------
-    username : string
-        username of the remote
-    repo : string
-        repository of the remote
-    remote : string
-        returns remotes
-
-    """
-    process = subprocess.Popen(["git", "remote", "-v"], stdout=subprocess.PIPE)
-    remotes = str(process.stdout.read())
-    url = remotes.split(" ", 1)[0]  # gets the fetch url
-    arguments = url.split(".com")[1]  # gets just the username/repo.git
-    arguments = arguments[1:]
-    arguments = arguments.split(".git")[0]  # takes out ".git"
-    username, repo = arguments.split("/")
-    return (username, repo)
-
-def fetch_PRs(user, repo, state='open'):
-    params = {'state': state,
-              'per_page': 100,
-              'page': 1}
-
-    data = []
-    page_data = True
-
-    while page_data:
-        config = {'user': user,
-                  'repo': repo,
-                  'params': urllib.parse.urlencode(params)}
-
-        fetch_status = ('Fetching page %(page)d (state=%(state)s)' % params +
-                        ' from %(user)s/%(repo)s...' % config)
-        print(fetch_status)
-
-        f = urllib.request.urlopen(
-            'https://api.github.com/repos/%(user)s/%(repo)s/pulls?%(params)s'
-            % config
-        )
-
-        params['page'] += 1
-        page_data = json.loads(f.read())
-
-        if 'message' in page_data and page_data['message'] == "Not Found":
-            page_data = []
-            print('Warning: Repo not found (%(user)s/%(repo)s)' % config)
-        else:
-            data.extend(page_data)
-
-    return data
 
 
-def seconds_from_epoch(dates):
-    seconds = [(dt - epoch).total_seconds() for dt in dates]
-    return seconds
+def execute():
+    def login():
+        """Retrieves the user's remote.
+
+        Returns
+        -------
+        username : string
+            username of the remote
+        repo : string
+            repository of the remote
+        remote : string
+            returns remotes
+
+        """
+        process = subprocess.Popen(["git", "remote", "-v"], stdout=subprocess.PIPE)
+        remotes = str(process.stdout.read())
+        url = remotes.split(" ", 1)[0]  # gets the fetch url
+        print(url)
+        arguments = url.split(".com")[1]  # gets just the username/repo.git
+        arguments = arguments[1:]
+        arguments = arguments.split(".git")[0]  # takes out ".git"
+        username, repo = arguments.split("/")
+        return (username, repo)
 
 
-def get_month_bins(dates):
-    now = datetime.now(tz=dates[0].tzinfo)
-    this_month = datetime(year=now.year, month=now.month, day=1,
-                          tzinfo=dates[0].tzinfo)
+    def fetch_PRs(user, repo, state='open'):
+        params = {'state': state,
+                  'per_page': 100,
+                  'page': 1}
 
-    bins = [this_month - relativedelta(months=i)
-            for i in reversed(range(-1, month_duration))]
-    return seconds_from_epoch(bins)
+        data = []
+        page_data = True
+
+        while page_data:
+            config = {'user': user,
+                      'repo': repo,
+                      'params': urllib.parse.urlencode(params)}
+
+            fetch_status = ('Fetching page %(page)d (state=%(state)s)' % params +
+                            ' from %(user)s/%(repo)s...' % config)
+            print(fetch_status)
+
+            f = urllib.request.urlopen(
+                'https://api.github.com/repos/%(user)s/%(repo)s/pulls?%(params)s'
+                % config
+            )
+
+            params['page'] += 1
+            page_data = json.loads(f.read())
+
+            if 'message' in page_data and page_data['message'] == "Not Found":
+                page_data = []
+                print('Warning: Repo not found (%(user)s/%(repo)s)' % config)
+            else:
+                data.extend(page_data)
+
+        return data
 
 
-def date_formatter(value, _):
-    dt = epoch + timedelta(seconds=value)
-    return dt.strftime('%Y/%m')
+    def seconds_from_epoch(dates):
+        seconds = [(dt - epoch).total_seconds() for dt in dates]
+        return seconds
 
 
-for r in releases:
-    releases[r] = dateutil.parser.parse(releases[r])
+    def get_month_bins(dates):
+        now = datetime.now(tz=dates[0].tzinfo)
+        this_month = datetime(year=now.year, month=now.month, day=1,
+                              tzinfo=dates[0].tzinfo)
+
+        bins = [this_month - relativedelta(months=i)
+                for i in reversed(range(-1, month_duration))]
+        return seconds_from_epoch(bins)
 
 
-try:
-    PRs = json.loads(open(cache, 'r').read())
-    print('Loaded PRs from cache...')
+    def date_formatter(value, _):
+        dt = epoch + timedelta(seconds=value)
+        return dt.strftime('%Y/%m')
 
-except IOError:
-    user, repo = login()
-    PRs = fetch_PRs(user=user, repo=repo, state='closed')
-    PRs.extend(fetch_PRs(user=user, repo=repo, state='open'))
-    PRs.extend(fetch_PRs(user=user, repo=repo, state='closed'))
+    
+    for r in releases:
+        releases[r] = dateutil.parser.parse(releases[r])
 
-    cf = open(cache, 'w')
-    cf.write(json.dumps(PRs))
-    cf.flush()
 
-nrs = [pr['number'] for pr in PRs]
-print('Processing %d pull requests...' % len(nrs))
+    try:
+        PRs = json.loads(open(cache, 'r').read())
+        print('Loaded PRs from cache...')
 
-dates = [dateutil.parser.parse(pr['created_at']) for pr in PRs]
+    except IOError:
+        user, repo = login()
+        PRs = fetch_PRs(user=user, repo=repo, state='closed')
+        PRs.extend(fetch_PRs(user=user, repo=repo, state='open'))
+        PRs.extend(fetch_PRs(user=user, repo=repo, state='closed'))
 
-epoch = datetime(2009, 1, 1, tzinfo=dates[0].tzinfo)
+        cf = open(cache, 'w')
+        cf.write(json.dumps(PRs))
+        cf.flush()
 
-dates_f = seconds_from_epoch(dates)
-bins = get_month_bins(dates)
+    nrs = [pr['number'] for pr in PRs]
+    print('Processing %d pull requests...' % len(nrs))
 
-fig, ax = plt.subplots(figsize=(7, 5))
+    dates = [dateutil.parser.parse(pr['created_at']) for pr in PRs]
 
-n, bins, _ = ax.hist(dates_f, bins=bins, color='blue', alpha=0.6)
+    if len(dates) == 0:
+        print("no pull requests!")
+        return
+    epoch = datetime(2009, 1, 1, tzinfo=dates[0].tzinfo)
 
-ax.xaxis.set_major_formatter(FuncFormatter(date_formatter))
-ax.set_xticks(bins[2:-1:3])  # Date label every 3 months.
+    dates_f = seconds_from_epoch(dates)
+    bins = get_month_bins(dates)
 
-labels = ax.get_xticklabels()
-for l in labels:
-    l.set_rotation(40)
-    l.set_size(10)
+    fig, ax = plt.subplots(figsize=(7, 5))
 
-mixed_transform = blended_transform_factory(ax.transData, ax.transAxes)
+    n, bins, _ = ax.hist(dates_f, bins=bins, color='blue', alpha=0.6)
 
-for version, date in releases.items():
-    date = seconds_from_epoch([date])[0]
-    ax.axvline(date, color='black', linestyle=':', label=version)
-    ax.text(date, 1, version, color='r', va='bottom', ha='center',
-            transform=mixed_transform)
+    ax.xaxis.set_major_formatter(FuncFormatter(date_formatter))
+    ax.set_xticks(bins[2:-1:3])  # Date label every 3 months.
 
-ax.set_title('Pull request activity').set_y(1.05)
-ax.set_xlabel('Date')
-ax.set_ylabel('PRs per month', color='blue')
+    labels = ax.get_xticklabels()
+    for l in labels:
+        l.set_rotation(40)
+        l.set_size(10)
 
-cumulative = np.cumsum(n)
-cumulative += len(dates) - cumulative[-1]
+    mixed_transform = blended_transform_factory(ax.transData, ax.transAxes)
 
-ax2 = ax.twinx()
-ax2.plot(bins[1:], cumulative, color='black', linewidth=2)
-ax2.set_ylabel('Total PRs', color='black')
+    for version, date in releases.items():
+        date = seconds_from_epoch([date])[0]
+        ax.axvline(date, color='black', linestyle=':', label=version)
+        ax.text(date, 1, version, color='r', va='bottom', ha='center',
+                transform=mixed_transform)
 
-plt.tight_layout()
-fig.savefig('.git/git-hub/PRs.jpg')
+    ax.set_title('Pull request activity').set_y(1.05)
+    ax.set_xlabel('Date')
+    ax.set_ylabel('PRs per month', color='blue')
 
-#plt.show()
+    cumulative = np.cumsum(n)
+    cumulative += len(dates) - cumulative[-1]
+
+    ax2 = ax.twinx()
+    ax2.plot(bins[1:], cumulative, color='black', linewidth=2)
+    ax2.set_ylabel('Total PRs', color='black')
+
+    plt.tight_layout()
+    fig.savefig('.git/git-hub/PRs.jpg')
+
+    #plt.show()
