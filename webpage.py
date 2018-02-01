@@ -1,13 +1,10 @@
 import os
 import toml
-import plot_pr
+import re
 from queue import *
 from datetime import datetime
 from datetime import timedelta
 from os.path import join as pjoin
-
-
-
 
 def path_to_git():
     """Finds path to .git folder
@@ -134,7 +131,11 @@ def most_active_prs_helper(prs):
         recent_comment_count = recent_comments(pr)
         q.put(-recent_comment_count)
 
-    most_comments = {-q.get(), -q.get(), -q.get()}
+    most_comments = set()
+    count = 0
+    while q.qsize() != 0 and count != 3:
+        most_comments.add(-q.get())
+        count += 1
     most_comments.discard(0) #removes 0 because don't want to have pr with 0 comments
     for pr_num in list(prs.keys()):
         pr = prs[pr_num]
@@ -174,11 +175,13 @@ def no_discussion_helper(prs):
     for pr_num in list(prs.keys()):
         pr = prs[pr_num]
         if pr['comment_count'] == "0":
+            print("this pr")
+            print(pr['comment_count'])
             no_disc_prs.append(f'PR #{pr_num}: {pr["user"]}/{pr["branch"]}: {pr["title"]}')
     return no_disc_prs
 
 def prs_with_me():
-    """Finds PRs that haven't seen any discussion. """
+    """Finds PRs that I have commented on"""
     try:
         path_prs = path_to_toml()
         f = open(path_prs, "r")
@@ -199,27 +202,6 @@ def find_prs_with_me(prs):
             prs_with_me.append(f'PR #{pr_num}: {pr["user"]}/{pr["branch"]}: {pr["title"]}')
     return prs_with_me
 
-def prs_with_me():
-    """Finds PRs that haven't seen any discussion. """
-    try:
-        path_prs = path_to_toml()
-        f = open(path_prs, "r")
-        pr_dict = toml.load(f)      # fetches toml file and creates a dictionary
-    except (OSError, IOError) as e:
-        # if pull-requests.toml hasnt been created yet calls sync and then reties to fetch
-        print("ERROR: pull-requests.toml doesn't exist. Run 'git hub sync' and try again")
-    open_dict = pr_dict['open pull requests']
-    opened = find_prs_with_me(open_dict)
-    return opened
-
-def find_prs_with_me(prs):
-    """helper function to find pull requests."""
-    prs_with_me = []
-    for pr_num in list(prs.keys()):
-        pr = prs[pr_num]
-        if pr['self_comment'] == "True":
-            prs_with_me.append(f'PR #{pr_num}: {pr["user"]}/{pr["branch"]}: {pr["title"]}')
-    return prs_with_me
 
 def unmergeable_prs():
     """Finds PRs that haven't seen any discussion. """
@@ -293,6 +275,7 @@ def closed_pr_refer_ticket():
 
 
 def find_closed_pr_refer_ticket(closed_prs, issues):
+    """helper function to find closed prs that reference open issues"""
     unresolved_issues = []
     for num in closed_prs:
         pr = closed_prs[num]
@@ -303,9 +286,8 @@ def find_closed_pr_refer_ticket(closed_prs, issues):
     return unresolved_issues
 
 def popular_tickets():
-    print('3')
+    """tickets that are referred to many times"""
     try:
-        print(1)
         path_prs = path_to_toml()
         f = open(path_prs, "r")
         pr_dict = toml.load(f)    # fetches toml file and creates a dictionary
@@ -318,6 +300,7 @@ def popular_tickets():
     return popular
 
 def find_popular_tickets(opened, issues):
+    """helper function to find popular tickets"""
     tickets = {}
     for num in opened:
         pr = opened[num]
@@ -329,27 +312,23 @@ def find_popular_tickets(opened, issues):
                 tickets[ticket] = 1
     for num in issues:
         issue = issues[num]
-        # print("ISSUE THIS IS ")
-        # print(issue)
         referred_tickets_in_tickets = tickets_referred(issue['comment_body'])
         for ticket in referred_tickets_in_prs:
             if ticket in tickets:
                 tickets[ticket] += 1
             else:
                 tickets[ticket] = 1
-    print(1)
     q = PriorityQueue()
     for ticket in list(tickets.keys()):
         q.put(-tickets[ticket])
-    print(2)
-    popular_count = {-q.get(), -q.get(), -q.get()}
+    count = 0
+    popular_count = set()
+    while q.qsize() != 0 and count < 3:
+        popular_count.add(-q.get())
+        count += 1
     most_popular = []
     #most_popular.remove(1) #is it considered popular if there is only one comment
-    print(3)
     for ticket in list(tickets.keys()):
         if tickets[ticket] in popular_count:
             most_popular.append(f'issue #{ticket}: {issues[ticket]["title"]}')
-    print(4)
     return most_popular
-
-#plot_pr.execute()
