@@ -260,10 +260,11 @@ def find_issues_no_comments(issues):
     """helper function to find issues with no comments."""
     issues_no_comments = []
     for num in list(issues.keys()):
-        issue = issue[num]
-        if issue['comment_count'] == 0:
+        issue = issues[num]
+        if issue['comment_count'] == "0":
+            print(issue['comment_count'])
             issues_no_comments.append(f'issue #{num}: {issue["title"]}')
-    return unmergeable_prs
+    return issues_no_comments
 
 def tickets_referred(comments):
     #finds tickets in comments of pull requests or issues
@@ -271,9 +272,9 @@ def tickets_referred(comments):
     for comment in comments:
         if "#" in comment:
             tickets_referred = (re.findall(r"(#\d+)", comment))
-        for ticket in tickets_referred:
-            ticket = ticket[1:]
-            issues.append(ticket)
+            for ticket in tickets_referred:
+                ticket = ticket[1:]
+                issues.append(ticket)
     return issues
 
 def closed_pr_refer_ticket():
@@ -293,16 +294,18 @@ def closed_pr_refer_ticket():
 
 def find_closed_pr_refer_ticket(closed_prs, issues):
     unresolved_issues = []
-    for pr in closed_pr:
-        referred_tickets = tickets_referred(pr.comment_content)
+    for num in closed_prs:
+        pr = closed_prs[num]
+        referred_tickets = tickets_referred(pr['comment_content'])
         for ticket in referred_tickets:
             if ticket in issues:
                 unresolved_issues.append(f'issue #{ticket}: {issues[ticket]["title"]}')
     return unresolved_issues
 
 def popular_tickets():
-    """Finds tickets referred too many times."""
+    print('3')
     try:
+        print(1)
         path_prs = path_to_toml()
         f = open(path_prs, "r")
         pr_dict = toml.load(f)    # fetches toml file and creates a dictionary
@@ -316,29 +319,37 @@ def popular_tickets():
 
 def find_popular_tickets(opened, issues):
     tickets = {}
-    for pr in opened:
-        referred_tickets_in_prs = tickets_referred(pr.comment_content)
+    for num in opened:
+        pr = opened[num]
+        referred_tickets_in_prs = tickets_referred(pr['comment_content'])
         for ticket in referred_tickets_in_prs:
-            if ticket in popular:
+            if ticket in tickets:
                 tickets[ticket] += 1
             else:
                 tickets[ticket] = 1
-    for issue in issues:
-        referred_tickets_in_tickets = tickets_referred(issue.comment_content)
+    for num in issues:
+        issue = issues[num]
+        # print("ISSUE THIS IS ")
+        # print(issue)
+        referred_tickets_in_tickets = tickets_referred(issue['comment_body'])
         for ticket in referred_tickets_in_prs:
-            if ticket in popular:
+            if ticket in tickets:
                 tickets[ticket] += 1
             else:
                 tickets[ticket] = 1
+    print(1)
     q = PriorityQueue()
-    for ticket in list(popular.keys()):
-        q.put(-popular[ticket])
+    for ticket in list(tickets.keys()):
+        q.put(-tickets[ticket])
+    print(2)
     popular_count = {-q.get(), -q.get(), -q.get()}
     most_popular = []
     #most_popular.remove(1) #is it considered popular if there is only one comment
-    for ticket in list(popular.keys()):
-        if popular[ticket] in popular_count:
-            unresolved_issues.append(f'issue #{ticket}: {issues[ticket]["title"]}')
+    print(3)
+    for ticket in list(tickets.keys()):
+        if tickets[ticket] in popular_count:
+            most_popular.append(f'issue #{ticket}: {issues[ticket]["title"]}')
+    print(4)
     return most_popular
 
 #plot_pr.execute()
