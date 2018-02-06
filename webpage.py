@@ -5,6 +5,9 @@ from queue import *
 from datetime import datetime
 from datetime import timedelta
 from os.path import join as pjoin
+import plot_pr
+
+plot_pr.execute() #before it didn't work since the cache directory wasn't made yet.
 
 def path_to_git():
     """Finds path to .git folder
@@ -91,21 +94,20 @@ def oldest_prs_helper(prs):
     """Helper function that finds oldest prs"""
     oldest = []
     q = PriorityQueue(maxsize=3)
-    old = timedelta()
-    now = datetime.now()
     for pr_num in list(prs.keys()):
         pr = prs[pr_num]
-        if now-parse_time(pr['created_at']) > old:
-            if q.qsize() == 3:
-                q.get()
-            q.put(now-parse_time(pr['created_at']))
-            old = q.get()
-            q.put(old)
+        q.put(parse_time(pr['created_at']))
+
+    oldest_dates = set()
+    count = 0
+    while q.qsize() != 0 and count != 3:
+        oldest_dates.add(q.get())
+        count += 1
 
     for pr_num in list(prs.keys()):
         pr = prs[pr_num]
-        if now-parse_time(pr['created_at']) > old:
-            days = str(now-parse_time(pr['created_at']))[:8]
+        if parse_time(pr['created_at']) in oldest_dates:
+            days = str(datetime.now()-parse_time(pr['created_at']))[:8]
             oldest.append(f'PR #{pr_num}: {pr["user"]}/{pr["branch"]}: {pr["title"]} --  {days}')
     return oldest
 
@@ -332,3 +334,4 @@ def find_popular_tickets(opened, issues):
         if tickets[ticket] in popular_count:
             most_popular.append(f'issue #{ticket}: {issues[ticket]["title"]}')
     return most_popular
+
