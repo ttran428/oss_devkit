@@ -6,7 +6,7 @@ from datetime import datetime
 from os.path import join as pjoin
 import plot_pr
 
-plot_pr.execute()  # before it didn't work since the cache directory wasn't made yet.
+#plot_pr.execute()  # before it didn't work since the cache directory wasn't made yet.
 
 
 def path_to_git():

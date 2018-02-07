@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 import subprocess
 import github
 import yaml
@@ -385,7 +385,7 @@ def search(keyword, user, comment, number, branch, opened_or_closed, label, sort
     except (OSError, IOError) as e:
         # if pull-requests.toml hasnt been created yet calls sync and then reties to fetch
         sync()
-        search(keyword, user, comment, number, branch, status)
+        search(keyword, user, comment, number, branch, opened_or_closed, label, sort)
 
     open_dict = pr_dict['open pull requests']
     closed_dict = pr_dict['closed pull requests']
