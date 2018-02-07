@@ -1,13 +1,13 @@
 import os
 import toml
 import re
-from queue import *
+from queue import PriorityQueue
 from datetime import datetime
-from datetime import timedelta
 from os.path import join as pjoin
 import plot_pr
 
-plot_pr.execute() #before it didn't work since the cache directory wasn't made yet.
+plot_pr.execute()  # before it didn't work since the cache directory wasn't made yet.
+
 
 def path_to_git():
     """Finds path to .git folder
@@ -19,6 +19,7 @@ def path_to_git():
     path_git = pjoin(path_repo, ".git")
     return path_git
 
+
 def path_to_toml():
     """Finds path to pull-requests.toml
     """
@@ -26,6 +27,7 @@ def path_to_toml():
     path_github = pjoin(path_git, 'git-hub')
     path_prs = pjoin(path_github, 'pull-requests.toml')
     return path_prs
+
 
 def week_old_comments():
     """Main function to find PRs that haven't been commented on in over a week
@@ -41,6 +43,7 @@ def week_old_comments():
     opened = week_old_comments_helper(open_dict)
     return opened
 
+
 def week_old_comments_helper(prs):
     """Helper function that finds all PRs in a dictionary that are over a week old
     """
@@ -48,14 +51,13 @@ def week_old_comments_helper(prs):
     for num in list(prs.keys()):
         pr = prs[num]
         if(pr['most_recent_comment'] == ""):
-            #all_prs.append('PR #{0}: {1}/{2} {3}'.format(sub_keys, sub_dictionary['user'], sub_dictionary['branch'], sub_dictionary['comment']))
             all_prs.append(f'PR #{num}: {pr["user"]}/{pr["branch"]}: {pr["comment"]}')
         else:
             comment_time = parse_time(pr['most_recent_comment'])
             if((datetime.now() - comment_time).days > 7):
-                #all_prs.append('PR #{0}: {1}/{2} {3}'.format(sub_keys, sub_dictionary['user'], sub_dictionary['branch'], sub_dictionary['comment']))
                 all_prs.append(f'PR #{num}: {pr["user"]}/{pr["branch"]}: {pr["comment"]}')
     return all_prs
+
 
 def parse_time(time):
     """
@@ -71,11 +73,12 @@ def parse_time(time):
     year, date = date.split('-', 1)
     month, date = date.split('-', 1)
     day = date
-    hour, time = time.split(':',1)
-    minute, time = time.split(':',1)
+    hour, time = time.split(':', 1)
+    minute, time = time.split(':', 1)
     second = time
     d = datetime(int(year), int(month), int(day), int(hour), int(minute), int(second))
     return d
+
 
 def oldest_prs():
     """Finds oldest prs by date created"""
@@ -89,6 +92,7 @@ def oldest_prs():
     open_dict = pr_dict['open pull requests']
     oldest = oldest_prs_helper(open_dict)
     return oldest
+
 
 def oldest_prs_helper(prs):
     """Helper function that finds oldest prs"""
@@ -111,6 +115,7 @@ def oldest_prs_helper(prs):
             oldest.append(f'PR #{pr_num}: {pr["user"]}/{pr["branch"]}: {pr["title"]} --  {days}')
     return oldest
 
+
 def most_active_prs():
     """Finds most active prs by most comments"""
     try:
@@ -124,11 +129,12 @@ def most_active_prs():
     most_popular = most_active_prs_helper(open_dict)
     return most_popular
 
+
 def most_active_prs_helper(prs):
     """helper function to find pull requests."""
     popular = []
     q = PriorityQueue()
-    for pr_num in list(prs.keys()): #find in last two weeks, not all time
+    for pr_num in list(prs.keys()):  # find in last two weeks, not all time
         pr = prs[pr_num]
         recent_comment_count = recent_comments(pr)
         q.put(-recent_comment_count)
@@ -138,7 +144,7 @@ def most_active_prs_helper(prs):
     while q.qsize() != 0 and count != 3:
         most_comments.add(-q.get())
         count += 1
-    most_comments.discard(0) #removes 0 because don't want to have pr with 0 comments
+    most_comments.discard(0)  # removes 0 because don't want to have pr with 0 comments
     for pr_num in list(prs.keys()):
         pr = prs[pr_num]
         recent_comment_count = recent_comments(pr)
@@ -146,8 +152,10 @@ def most_active_prs_helper(prs):
             popular.append(f'PR #{pr_num}: {pr["user"]}/{pr["branch"]}: {pr["title"]} -- {recent_comment_count} comment(s)')
     return popular
 
+
 def recent_comments(pr):
-    #counts how many comments in the last two weeks
+    """counts how many comments in the last two weeks
+    """
     count = 0
     comment_dates = pr['comment_dates']
     for date in comment_dates:
@@ -155,7 +163,6 @@ def recent_comments(pr):
         if((datetime.now() - comment_time).days < 14):
             count += 1
     return count
-
 
 
 def no_discussion():
@@ -171,6 +178,7 @@ def no_discussion():
     opened = no_discussion_helper(open_dict)
     return opened
 
+
 def no_discussion_helper(prs):
     """helper function to find pull requests."""
     no_disc_prs = []
@@ -182,6 +190,7 @@ def no_discussion_helper(prs):
             no_disc_prs.append(f'PR #{pr_num}: {pr["user"]}/{pr["branch"]}: {pr["title"]}')
     return no_disc_prs
 
+
 def prs_with_me():
     """Finds PRs that I have commented on"""
     try:
@@ -189,11 +198,12 @@ def prs_with_me():
         f = open(path_prs, "r")
         pr_dict = toml.load(f)      # fetches toml file and creates a dictionary
     except (OSError, IOError) as e:
-        # if pull-requests.toml hasnt been created yet calls sync and then reties to fetch
+        # if pull-requests.toml hasnt been created yet calls sync and then retries to fetch
         print("ERROR: pull-requests.toml doesn't exist. Run 'git hub sync' and try again")
     open_dict = pr_dict['open pull requests']
     opened = find_prs_with_me(open_dict)
     return opened
+
 
 def find_prs_with_me(prs):
     """helper function to find pull requests."""
@@ -218,6 +228,7 @@ def unmergeable_prs():
     opened = find_unmergeable_prs(open_dict)
     return opened
 
+
 def find_unmergeable_prs(prs):
     """helper function to find pull requests."""
     unmergeable_prs = []
@@ -226,6 +237,7 @@ def find_unmergeable_prs(prs):
         if pr['mergeable'] == "False":
             unmergeable_prs.append(f'PR #{pr_num}: {pr["user"]}/{pr["branch"]}: {pr["title"]}')
     return unmergeable_prs
+
 
 def issues_no_comments():
     """Finds issues without any comments. """
@@ -240,6 +252,7 @@ def issues_no_comments():
     opened = find_issues_no_comments(open_dict)
     return opened
 
+
 def find_issues_no_comments(issues):
     """helper function to find issues with no comments."""
     issues_no_comments = []
@@ -250,8 +263,10 @@ def find_issues_no_comments(issues):
             issues_no_comments.append(f'issue #{num}: {issue["title"]}')
     return issues_no_comments
 
+
 def tickets_referred(comments):
-    #finds tickets in comments of pull requests or issues
+    """finds tickets in comments of pull requests or issues
+    """
     issues = []
     for comment in comments:
         if "#" in comment:
@@ -261,7 +276,8 @@ def tickets_referred(comments):
                 issues.append(ticket)
     return issues
 
-def closed_pr_refer_ticket():
+
+def closed_pr_refer_tickets():
     """Finds issues that are referred to from prs and other issues """
     try:
         path_prs = path_to_toml()
@@ -287,6 +303,7 @@ def find_closed_pr_refer_ticket(closed_prs, issues):
                 unresolved_issues.append(f'issue #{ticket}: {issues[ticket]["title"]}')
     return unresolved_issues
 
+
 def popular_tickets():
     """tickets that are referred to many times"""
     try:
@@ -300,6 +317,7 @@ def popular_tickets():
     issues = pr_dict['issues']
     popular = find_popular_tickets(opened, issues)
     return popular
+
 
 def find_popular_tickets(opened, issues):
     """helper function to find popular tickets"""
@@ -315,7 +333,7 @@ def find_popular_tickets(opened, issues):
     for num in issues:
         issue = issues[num]
         referred_tickets_in_tickets = tickets_referred(issue['comment_body'])
-        for ticket in referred_tickets_in_prs:
+        for ticket in referred_tickets_in_tickets:
             if ticket in tickets:
                 tickets[ticket] += 1
             else:
@@ -329,9 +347,8 @@ def find_popular_tickets(opened, issues):
         popular_count.add(-q.get())
         count += 1
     most_popular = []
-    #most_popular.remove(1) #is it considered popular if there is only one comment
+    # most_popular.remove(1) #is it considered popular if there is only one comment
     for ticket in list(tickets.keys()):
         if tickets[ticket] in popular_count:
             most_popular.append(f'issue #{ticket}: {issues[ticket]["title"]}')
     return most_popular
-

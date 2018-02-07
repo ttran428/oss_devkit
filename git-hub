@@ -14,7 +14,6 @@ from urllib.request import urlopen, Request
 from os.path import join as pjoin
 
 
-
 def login():
     """Retrieves the user's remote.
 
@@ -110,15 +109,12 @@ def pr(num):
         with open(file_path, "a+") as f:
             if os.stat(file_path).st_size == 0:  # check if empty
                 f.write("#This file contains metadata about pull requests. \n")
-        f.close()
         with open(file_path, "r") as f:
             pr_dict = toml.load(f)
-        f.close()
         if f'pr/{num}' not in pr_dict:
             with open(file_path, "a") as f:
                 f.write((f"\n ['pr/{num}'] \n'branch' = '{branch}' \n"
                         f"'user' = '{other_user}' \n"))
-            f.close()
 
     except github.BadCredentialsException as e:
         print(e)
@@ -145,8 +141,8 @@ def push():
     try:
         file_path = path_to_git()
         file_path = os.path.join(file_path, '.git_hub_cache')
-        f = open(file_path, "r")
-        pr_dict = toml.load(f)
+        with open(file_path, "r") as f:
+            pr_dict = toml.load(f)
         user = pr_dict[pr]['user']
         branch = pr_dict[pr]["branch"]
         p = subprocess.Popen(["git", "push", user,
@@ -169,6 +165,7 @@ def path_to_git():
     path_git = pjoin(path_repo, ".git")
     return path_git
 
+
 def path_to_toml():
     """Finds path to pull-requests.toml
     """
@@ -176,6 +173,7 @@ def path_to_toml():
     path_github = pjoin(path_git, 'git-hub')
     path_prs = pjoin(path_github, 'pull-requests.toml')
     return path_prs
+
 
 def find_in_dictionary(pr_data, open_or_closed_dictionary):
     """Fetches all the information on a certain PR
@@ -260,6 +258,7 @@ def get_info(pr_data):
         click.echo('-Commits: {0}  -Comment count: {1}  -Most recent comment: {2}'.format(commits, comment_count, most_recent_comment))
         click.echo('-Labels: {0}  -Reviewers: {1}  -Branch: {2}  -Assignees: {3}  -Milestones: {4}'.format(labels, reviewers, branch, assignee, milestone))
 
+
 def parse_time(time):
     """
     Converts time into python datetime object
@@ -274,8 +273,8 @@ def parse_time(time):
     year, date = date.split('-', 1)
     month, date = date.split('-', 1)
     day = date
-    hour, time = time.split(':',1)
-    minute, time = time.split(':',1)
+    hour, time = time.split(':', 1)
+    minute, time = time.split(':', 1)
     second = time
     d = datetime(int(year), int(month), int(day), int(hour), int(minute), int(second))
     return d
@@ -400,9 +399,9 @@ def search(keyword, user, comment, number, branch, opened_or_closed, label, sort
         click.echo("Could not find in pull requests. Update your pull requests with 'git hub sync' and try again.")
 
 
-def json_to_toml(username, repo, pr, token, open_or_closed):
+def find_pr_info(username, repo, pr, token, open_or_closed):
     """Helper function that finds all the information we want to record from the
-    json file and converts it to toml format syntax
+    pull requests from the API and converts it to toml format syntax
 
     Parameters
     ----------
@@ -449,7 +448,7 @@ def json_to_toml(username, repo, pr, token, open_or_closed):
     else:
         to_write = to_write + 'milestone = "" \n'
 
-    issue_url = response.get('issue_url')       #fetches labels attached to pull requests
+    issue_url = response.get('issue_url')       # fetches labels attached to pull requests
     labels = ""
     issue_request = Request(issue_url)
     issue_response = urlopen(issue_request)
@@ -459,7 +458,7 @@ def json_to_toml(username, repo, pr, token, open_or_closed):
         labels = labels + label.get('name')+", "
     to_write = to_write + 'labels = "{0}" \n'.format(labels[:-2])
 
-    comment_url = response.get('comments_url')       #fetches latest activity (comment) date
+    comment_url = response.get('comments_url')       # fetches latest activity (comment) date
     comment_count = 0
     most_recent = ""
     self_comment = False
@@ -487,9 +486,10 @@ def json_to_toml(username, repo, pr, token, open_or_closed):
 
     return to_write
 
-def json_to_toml_issues(username, repo, issue, token):
-    """Helper function that finds all the information we want to record from the
-    json file and converts it to toml format syntax
+
+def find_issue_info(username, repo, issue, token):
+    """Helper function that finds all the information we want to record from the issues
+    from the API and converts it to toml format syntax
 
     Parameters
     ----------
@@ -512,12 +512,12 @@ def json_to_toml_issues(username, repo, issue, token):
     to_write = to_write + 'title = "{0}" \n'.format(response.get('title'))
     to_write = to_write + 'number = "{0}" \n'.format(response.get('number'))
     to_write = to_write + 'body = """{0}""" \n'.format(response.get('body'))
-    
-    comment_url = response.get('comments_url')       #fetches latest activity (comment) date
+
+    comment_url = response.get('comments_url')
     comment_count = 0
     most_recent = ""
     self_comment = False
-    comment_dates= []
+    comment_dates = []
     comment_content = []
     comment_request = Request(comment_url)
     comment_response = urlopen(comment_request)
@@ -538,6 +538,7 @@ def json_to_toml_issues(username, repo, issue, token):
     to_write = to_write + 'comment_dates = "{0}" \n'.format(comment_dates)
     to_write = to_write + 'comment_body = {0} \n'.format(comment_content)
     return to_write
+
 
 def sync():
     """Updates and saves pull-requests in pull-requests.toml in the .git folder. """
@@ -560,26 +561,24 @@ def sync():
         sys.exit(1)
 
     # creates dictionaries in toml format as we scan though pull requests
-    #print(username, repo)
-
     open_prs = g.get_user(username).get_repo(repo).get_pulls("open")
     for pr in open_prs:
-        to_write = to_write + json_to_toml(username, repo, pr, token, "open")
+        to_write = to_write + find_pr_info(username, repo, pr, token, "open")
     to_write = to_write[:-1]+'\n'
     to_write = to_write + "['closed pull requests'] \n"
     closed_prs = g.get_user(username).get_repo(repo).get_pulls("closed")
     for pr in closed_prs:
-        to_write = to_write + json_to_toml(username, repo, pr, token, "closed")
-    
-    issues = g.get_user(username).get_repo(repo).get_issues() #default is get open issues
-    # to_write = "['issues'] \n"
+        to_write = to_write + find_pr_info(username, repo, pr, token, "closed")
+
+    issues = g.get_user(username).get_repo(repo).get_issues()  # default is get open issues
     to_write = to_write + "['issues'] \n"
     for issue in issues:
         if f"pull requests'.{issue.number}" not in to_write:
-            to_write = to_write + json_to_toml_issues(username, repo, issue, token)
+            to_write = to_write + find_issue_info(username, repo, issue, token)
     # converts it to toml and stores in file
     toml_string = toml.loads(to_write)
     toml.dump(toml_string, f)
+
 
 def render():
     app.main()
@@ -588,6 +587,7 @@ def render():
 @click.group()
 def cli():
     pass
+
 
 @cli.command()
 @click.argument("command", default="")
@@ -608,7 +608,7 @@ def hub(command, args, user, comment, number, branch, sort, opened, label):
         push()
 
     elif command == "search":
-        if(args == None):
+        if(args is None):
             search(None, user, comment, number, branch, opened, label, sort)
         else:
             search(" ".join(args), user, comment, number, branch, opened, label, sort)

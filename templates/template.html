@@ -70,6 +70,30 @@
         {% endfor %}
       </ul>
     </div>
+    <div class="container">
+        <h3 id="center-header"> List of Issues with no comments: </h3>
+      <ul>
+        {% for n in no_disc_issues %}
+        <li>{{n}}</li>
+        {% endfor %}
+      </ul>
+    </div>
+    <div class="container">
+        <h3 id="center-header"> List of Issues referred to by closed PRs: </h3>
+      <ul>
+        {% for n in pr_refer_tickets %}
+        <li>{{n}}</li>
+        {% endfor %}
+      </ul>
+    </div>
+    <div class="container">
+        <h3 id="center-header"> List of most active issues: </h3>
+      <ul>
+        {% for n in hot_tickets %}
+        <li>{{n}}</li>
+        {% endfor %}
+      </ul>
+    </div>
     <script src="http://code.jquery.com/jquery-1.10.2.min.js"></script>
     <script src="http://netdna.bootstrapcdn.com/bootstrap/3.0.0/js/bootstrap.min.js"></script>
   </body>
