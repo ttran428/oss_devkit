@@ -32,3 +32,7 @@ git hub search [*args]
 Searches in pull-requests.toml to find pull-requests that match search keywords in *args.
 
 .. note:: It is recommended to run **git hub sync** to update pull-requests.toml before running **git hub search [*args]**.
+
+git hub render
+--------------
+Creates a html file of facts and statistics about the project.
