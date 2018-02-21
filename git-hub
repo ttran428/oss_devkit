@@ -125,7 +125,7 @@ def push():
     "git push user pr/num:branch"
 
     """
-    p = subprocess.Popen("git branch", stdout=subprocess.PIPE)
+    p = subprocess.Popen(["git", "branch"], stdout=subprocess.PIPE)
     pr = str(p.stdout.read())
     pr = pr.split("*", 1)[1].split()[0]
     pr = pr.replace("\\n", "").replace(" ", "").replace("'", "").split("/")[1]
@@ -438,19 +438,19 @@ def find_pr_info(username, repo, pr, token, open_or_closed):
 
     to_write = f"""
     ['{open_or_closed} pull requests'.{pr.number}]\n
-    title = "{response.get('title')}" \n
-    body = "{response.get('body')}" \n
+    title = "{repr(response.get('title'))}" \n
+    body = "{repr(response.get('body'))}" \n
     user = "{pr.user.login}" \n
     branch = "{response.get('head').get('ref')}" \n
     mergeable = "{pr.mergeable}" \n
-    comment = "{pr.title}" \n
-    commits = "{response.get('commits')}" \n
+    comment = "{repr(pr.title)}" \n
+    commits = "{repr(response.get('commits'))}" \n
     modified = "{pr.updated_at}" \n
     created_at = "{response.get('created_at')}" \n
     updated_at = "{response.get('updated_at')}" \n
     closed_at = "{response.get('closed_at')}" \n
     merged_at = "{response.get('merged_at')}" \n
-    reviews = {reviews} \n
+    reviews = {repr(reviews)} \n
     assignees = {assignees} \n
     milestone = "{pr.milestone.title if pr.milestone else ""}"\n
     labels = {labels}\n
@@ -458,7 +458,7 @@ def find_pr_info(username, repo, pr, token, open_or_closed):
                     for c in list(comment_dict)])}"\n
     comment_dates = {comment_dates}\n
     most_recent = '{max(comment_dates) if comment_dates  else ""}'\n
-    comment_content = {[c.get("body") for c in list(comment_dict)]}\n
+    comment_content = {repr([c.get("body") for c in list(comment_dict)])}\n
     comment_count = '{len(list(comment_dict))}'\n
     """
     return textwrap.dedent(to_write)
@@ -496,12 +496,12 @@ def find_issue_info(username, repo, issue, token):
     ['issues'.{issue.number}]\n
     title = "{response.get('title')}"\n
     number = "{response.get('number')}"\n
-    body = '''{response.get('body')}'''\n
+    body = '''{repr(response.get('body'))}'''\n
     self_comment = "{any([c.get('user').get('login') == username
                     for c in list(comment_dict)])}"\n
     comment_dates = "{comment_dates}"\n
     most_recent = '{max(comment_dates) if comment_dates  else ""}'\n
-    comment_content = {comment_content}\n
+    comment_content = {repr(comment_content)}\n
     comment_count = '{len(list(comment_dict))}'\n
     """
     return textwrap.dedent(to_write)
