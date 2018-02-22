@@ -575,7 +575,7 @@ def hub(command, args, user, comment, number, branch, sort, opened, label):
         push()
 
     elif command == "search":
-        if(args is None):
+        if(not args):
             search(None, user, comment, number, branch, opened, label, sort)
         else:
             search(" ".join(args), user, comment,
