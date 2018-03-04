@@ -36,3 +36,7 @@ Searches in pull-requests.toml to find pull-requests that match search keywords 
 git hub render
 --------------
 Creates a html file of facts and statistics about the project.
+
+git hub image
+-------------
+Creates the image of open pull requests over time.
