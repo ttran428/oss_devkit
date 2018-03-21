@@ -5,7 +5,6 @@ import yaml
 import click
 import sys
 import textwrap
-import json
 import toml
 import os
 from datetime import datetime
@@ -93,9 +92,6 @@ def pr(num):
     try:
         g = github.Github(token)
         pr = g.get_user(username).get_repo(repo).get_pull(num)
-        print("THIS IS THE PULL REQUEST")
-        print(json.dumps(pr))
-        print("------------------")
         label = pr.head.label
         other_user, branch = label.split(":")
         remote_name = "\\n" + other_user + "\\t"
