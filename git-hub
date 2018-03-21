@@ -9,7 +9,6 @@ import json
 import toml
 import os
 from datetime import datetime
-from urllib.request import urlopen, Request
 from os.path import join as pjoin
 import ansi
 
@@ -94,6 +93,12 @@ def pr(num):
     try:
         g = github.Github(token)
         pr = g.get_user(username).get_repo(repo).get_pull(num)
+<<<<<<< HEAD
+=======
+        print("THIS IS THE PULL REQUEST")
+        print(json.dumps(pr))
+        print("------------------")
+>>>>>>> master
         label = pr.head.label
         other_user, branch = label.split(":")
         remote_name = "\\n" + other_user + "\\t"
@@ -395,109 +400,82 @@ def search(keyword, user, comment, number,
                    f"pull requests with 'git hub sync' and try again.")
 
 
-def find_pr_info(username, repo, pr, token, open_or_closed):
+def find_pr_info(pr, repo, token, open_or_closed):
+>>>>>>> master
     """Helper function that finds all the information we want to record from the
     pull requests from the API and converts it to toml format syntax
 
     Parameters
     ----------
-    username : string
-        username created of PR
-    repo : string
-        repo user created PR from
     pr : object
         PR dictionary
+    repo : object
+        github object of the repo
     token : string
         authentication token for user
     open_or_closed : string
         if the PR is open or closed
     """
     to_write = ""
-    url = f'https://api.github.com/repos/{username}/{repo}/pulls/{pr.number}'
-    request = Request(url)
-    request.add_header('Authorization', 'token %s' % token)
-    response = urlopen(request)
-    response = json.loads(response.read().decode('utf-8'))
-    issue_url = response.get('issue_url')
-    labels = ""
-    issue_request = Request(issue_url)
-    issue_response = urlopen(issue_request)
-    issue_response = json.loads(issue_response.read().decode('utf-8'))
-    labels_dict = issue_response.get('labels')
-    comment_url = response.get('comments_url')
-    comment_request = Request(comment_url)
-    comment_response = urlopen(comment_request)
-    comment_dict = json.loads(comment_response.read().decode('utf-8'))
-
-    reviews = [reviewer.get('login') for reviewer in
-               list(response.get('requested_reviewers'))]
-    assignees = [assignee.get('login')
-                 for assignee in list(response.get('assignees'))]
-    labels = [label.get('name') for label in list(labels_dict)]
-    comment_dates = [c.get('updated_at') for c in list(comment_dict)]
+    comment_dict = pr.get_comments()
+    labels_dict = repo.get_issue(pr.number).labels
+    reviews = [reviewer.login for reviewer in
+               list(pr.get_review_comments())]
+    assignees = [assignee.login
+                 for assignee in list(pr.assignees)]
+    labels = [label.name for label in list(labels_dict)]
+    comment_dates = [c.updated_at for c in list(comment_dict)]
 
     to_write = f"""
     ['{open_or_closed} pull requests'.{pr.number}]\n
-    title = "{repr(response.get('title'))}" \n
-    body = "{repr(response.get('body'))}" \n
+    title = "{repr(pr.title)}" \n
+    body = "{repr(pr.body)}" \n
     user = "{pr.user.login}" \n
-    branch = "{response.get('head').get('ref')}" \n
+    branch = "{pr.head.ref}" \n
     mergeable = "{pr.mergeable}" \n
     comment = "{repr(pr.title)}" \n
-    commits = "{repr(response.get('commits'))}" \n
+    commits = "{repr(pr.commits)}" \n
     modified = "{pr.updated_at}" \n
-    created_at = "{response.get('created_at')}" \n
-    updated_at = "{response.get('updated_at')}" \n
-    closed_at = "{response.get('closed_at')}" \n
-    merged_at = "{response.get('merged_at')}" \n
+    created_at = "{pr.created_at}" \n
+    updated_at = "{pr.updated_at}" \n
+    closed_at = "{pr.closed_at}" \n
+    merged_at = "{pr.merged_at}" \n
     reviews = {repr(reviews)} \n
     assignees = {assignees} \n
     milestone = "{pr.milestone.title if pr.milestone else ""}"\n
     labels = {labels}\n
-    self_comment = "{any([c.get('user').get('login') == username
+    self_comment = "{any([c.user.login == pr.user.login
                     for c in list(comment_dict)])}"\n
     comment_dates = {comment_dates}\n
     most_recent = '{max(comment_dates) if comment_dates  else ""}'\n
-    comment_content = {repr([c.get("body") for c in list(comment_dict)])}\n
+    comment_content = {repr([c.body for c in list(comment_dict)])}\n
     comment_count = '{len(list(comment_dict))}'\n
     """
     return textwrap.dedent(to_write)
 
 
-def find_issue_info(username, repo, issue, token):
+def find_issue_info(issue, token):
     """Helper function that finds all the information
        we want to record from the issues
        from the API and converts it to toml format syntax.
 
     Parameters
     ----------
-    username : string
-        username created of PR
-    repo : string
-        repo user created PR from
-    pr : object
-        PR dictionary
+    issue : object
+        github object that is an issue
     token : string
         authentication token for user
     """
-    url = (f'https://api.github.com/repos/'
-           f'{username}/{repo}/issues/{issue.number}')
-    request = Request(url)
-    request.add_header('Authorization', 'token %s' % token)
-    response = urlopen(request)
-    response = json.loads(response.read().decode('utf-8'))
-    comment_url = response.get('comments_url')
-    comment_request = Request(comment_url)
-    comment_response = urlopen(comment_request)
-    comment_dict = json.loads(comment_response.read().decode('utf-8'))
-    comment_dates = [c.get('updated_at') for c in list(comment_dict)]
-    comment_content = [c.get("body") for c in list(comment_dict)]
+
+    comment_dict = issue.get_comments()
+    comment_dates = [c.updated_at for c in list(comment_dict)]
+    comment_content = [c.body for c in list(comment_dict)]
     to_write = f"""
     ['issues'.{issue.number}]\n
-    title = "{response.get('title')}"\n
-    number = "{response.get('number')}"\n
-    body = '''{repr(response.get('body'))}'''\n
-    self_comment = "{any([c.get('user').get('login') == username
+    title = "{issue.title}"\n
+    number = "{issue.number}"\n
+    body = '''{repr(issue.body)}'''\n
+    self_comment = "{any([c.user.login == issue.user.login
                     for c in list(comment_dict)])}"\n
     comment_dates = "{comment_dates}"\n
     most_recent = '{max(comment_dates) if comment_dates  else ""}'\n
@@ -530,20 +508,21 @@ def sync():
         sys.exit(1)
 
     # creates dictionaries in toml format as we scan though pull requests
+    github_repo = g.get_user(username).get_repo(repo)
     open_prs = g.get_user(username).get_repo(repo).get_pulls("open")
     for pr in open_prs:
-        to_write = to_write + find_pr_info(username, repo, pr, token, "open")
+        to_write = to_write + find_pr_info(pr, github_repo, token, "open")
     to_write = to_write[:-1]+'\n'
     to_write = to_write + "['closed pull requests'] \n"
     closed_prs = g.get_user(username).get_repo(repo).get_pulls("closed")
     for pr in closed_prs:
-        to_write = to_write + find_pr_info(username, repo, pr, token, "closed")
+        to_write = to_write + find_pr_info(pr, github_repo, token, "closed")
 
     issues = g.get_user(username).get_repo(repo).get_issues()
     to_write = to_write + "['issues'] \n"
     for issue in issues:
         if f"pull requests'.{issue.number}" not in to_write:
-            to_write = to_write + find_issue_info(username, repo, issue, token)
+            to_write = to_write + find_issue_info(issue, token)
     # converts it to toml and stores in file
     toml_string = toml.loads(to_write)
     toml.dump(toml_string, f)
