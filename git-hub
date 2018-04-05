@@ -104,8 +104,6 @@ def pr(num):
         p.stdout.read()
         subprocess.Popen(["git", "checkout", "-b",
                          f'pr/{num}', f'{other_user}/{branch}'])
-        print(["git", "checkout", "-b",
-                         f'pr/{num}', f'{other_user}/{branch}'])
 
     except github.BadCredentialsException as e:
         print(e)
@@ -413,7 +411,7 @@ def find_pr_info(pr, repo, token, open_or_closed):
     to_write = ""
     comment_dict = pr.get_comments()
     labels_dict = repo.get_issue(pr.number).labels
-    reviews = [reviewer.login for reviewer in
+    reviews = [reviewer.user for reviewer in
                list(pr.get_review_comments())]
     assignees = [assignee.login
                  for assignee in list(pr.assignees)]
@@ -542,10 +540,7 @@ def cli():
 @click.option('--label', '-l', default="", help="search PR by label")
 def hub(command, args, user, comment, number, branch, sort, opened, label):
     if command == "pr":
-        if args[0].isdigit():
-            pr_num = int(args[0])
-        else:
-            pr_num = int(args[0][-1])
+        pr_num = int(args[0])
         pr(pr_num)
 
     elif command == "push":
