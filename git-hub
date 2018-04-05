@@ -540,7 +540,10 @@ def cli():
 @click.option('--label', '-l', default="", help="search PR by label")
 def hub(command, args, user, comment, number, branch, sort, opened, label):
     if command == "pr":
-        pr_num = int(args[0])
+        if args[0].isdigit():
+            pr_num = int(args[0])
+        else:
+            pr_num = int(args[0][-1])
         pr(pr_num)
 
     elif command == "push":
