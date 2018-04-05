@@ -3,4 +3,5 @@ pyyaml
 click
 toml
 requests
-Sphinx
+jinja2
+
