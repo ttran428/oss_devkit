@@ -409,43 +409,56 @@ def find_pr_info(pr, repo, token, open_or_closed):
         if the PR is open or closed
     """
     to_write = ""
-    comment_dict = pr.get_comments()
-    labels_dict = repo.get_issue(pr.number).labels
-    reviews = [reviewer.user for reviewer in
-               list(pr.get_review_comments())]
-    assignees = [assignee.login
-                 for assignee in list(pr.assignees)]
-    labels = [label.name for label in list(labels_dict)]
-    comment_dates = [c.updated_at for c in list(comment_dict)]
+    url = f'https://api.github.com/repos/{username}/{repo}/pulls/{pr.number}'
+    request = Request(url)
+    request.add_header('Authorization', 'token %s' % token)
+    response = urlopen(request)
+    response = json.loads(response.read().decode('utf-8'))
+    issue_url = response.get('issue_url')
+    labels = ""
+    issue_request = Request(issue_url)
+    issue_response = urlopen(issue_request)
+    issue_response = json.loads(issue_response.read().decode('utf-8'))
+    labels_dict = issue_response.get('labels')
+    comment_url = response.get('comments_url')
+    comment_request = Request(comment_url)
+    comment_response = urlopen(comment_request)
+    comment_dict = json.loads(comment_response.read().decode('utf-8'))
+
+    reviews = [reviewer.get('login') for reviewer in
+               list(response.get('requested_reviewers'))]
+    assignees = [assignee.get('login')
+                 for assignee in list(response.get('assignees'))]
+    labels = [label.get('name') for label in list(labels_dict)]
+    comment_dates = [c.get('updated_at') for c in list(comment_dict)]
 
     to_write = f"""
     ['{open_or_closed} pull requests'.{pr.number}]\n
-    title = "{repr(pr.title)}" \n
-    url = "{pr.html_url}" \n
-    body = "{repr(pr.body)}" \n
+    title = "{repr(response.get('title'))}" \n
+    url = "{response.get('html_url')}"\n
+    body = "{repr(response.get('body'))}" \n
     user = "{pr.user.login}" \n
-    branch = "{pr.head.ref}" \n
+    branch = "{response.get('head').get('ref')}" \n
     mergeable = "{pr.mergeable}" \n
     comment = "{repr(pr.title)}" \n
-    commits = "{repr(pr.commits)}" \n
+    commits = "{repr(response.get('commits'))}" \n
     modified = "{pr.updated_at}" \n
-    created_at = "{pr.created_at}" \n
-    updated_at = "{pr.updated_at}" \n
-    closed_at = "{pr.closed_at}" \n
-    merged_at = "{pr.merged_at}" \n
+    created_at = "{response.get('created_at')}" \n
+    updated_at = "{response.get('updated_at')}" \n
+    closed_at = "{response.get('closed_at')}" \n
+    merged_at = "{response.get('merged_at')}" \n
     reviews = {repr(reviews)} \n
     assignees = {assignees} \n
     milestone = "{pr.milestone.title if pr.milestone else ""}"\n
     labels = {labels}\n
-    self_comment = "{any([c.user.login == pr.user.login
+    self_comment = "{any([c.get('user').get('login') == username
                     for c in list(comment_dict)])}"\n
     comment_dates = {comment_dates}\n
     most_recent = '{max(comment_dates) if comment_dates  else ""}'\n
-    comment_content = {repr([c.body for c in list(comment_dict)])}\n
+    comment_content = {repr([c.get("body") for c in list(comment_dict)])}\n
     comment_count = '{len(list(comment_dict))}'\n
     """
     return textwrap.dedent(to_write)
-
 
 def find_issue_info(issue, token):
     """Helper function that finds all the information
@@ -459,16 +472,25 @@ def find_issue_info(issue, token):
     token : string
         authentication token for user
     """
-
-    comment_dict = issue.get_comments()
-    comment_dates = [c.updated_at for c in list(comment_dict)]
-    comment_content = [c.body for c in list(comment_dict)]
+    url = (f'https://api.github.com/repos/'
+           f'{username}/{repo}/issues/{issue.number}')
+    request = Request(url)
+    request.add_header('Authorization', 'token %s' % token)
+    response = urlopen(request)
+    response = json.loads(response.read().decode('utf-8'))
+    comment_url = response.get('comments_url')
+    comment_request = Request(comment_url)
+    comment_response = urlopen(comment_request)
+    comment_dict = json.loads(comment_response.read().decode('utf-8'))
+    comment_dates = [c.get('updated_at') for c in list(comment_dict)]
+    comment_content = [c.get("body") for c in list(comment_dict)]
     to_write = f"""
     ['issues'.{issue.number}]\n
-    title = "{issue.title}"\n
-    number = "{issue.number}"\n
-    body = '''{repr(issue.body)}'''\n
-    self_comment = "{any([c.user.login == issue.user.login
+    title = "{response.get('title')}"\n
+    url = "{response.get('html_url')}"\n
+    number = "{response.get('number')}"\n
+    body = '''{repr(response.get('body'))}'''\n
+    self_comment = "{any([c.get('user').get('login') == username
                     for c in list(comment_dict)])}"\n
     comment_dates = "{comment_dates}"\n
     most_recent = '{max(comment_dates) if comment_dates  else ""}'\n
@@ -476,7 +498,6 @@ def find_issue_info(issue, token):
     comment_count = '{len(list(comment_dict))}'\n
     """
     return textwrap.dedent(to_write)
-
 
 def sync():
     """Updates and saves pull-requests
