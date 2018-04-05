@@ -5,11 +5,13 @@ import yaml
 import click
 import sys
 import textwrap
+import json
 import toml
 import app
 import plot_pr
 import os
 from datetime import datetime
+from urllib.request import urlopen, Request
 from os.path import join as pjoin
 import ansi
 
@@ -19,7 +21,6 @@ def login():
     For example consider running 'git remote -v' and getting back:
         origin  git@github.com:test_user/test_repo.git (fetch)
         origin git@github.com:test_user/test_repo.git (push)
-
     Returns
     -------
     username : string
@@ -28,7 +29,6 @@ def login():
         origin repository of the github user, i.e. test_repo
     remotes : string
         Git remotes: the output of 'git remote -v'
-
     """
     process = subprocess.Popen(["git", "remote", "-v"], stdout=subprocess.PIPE)
     remotes = str(process.stdout.read())
@@ -42,7 +42,6 @@ def login():
 
 def get_token():
     """Retrieve token from configuration file.
-
     Returns
     -------
     token : string
@@ -61,14 +60,10 @@ def get_token():
     else:
         print(textwrap.dedent("""\
             No authentication token specified in: ~/.config/git-hub.yaml
-
             Please see
-
               https://help.github.com/articles/creating-a-personal-access-token-for-the-command-line/
-
             for instruction on obtaining a token. Then update the configuration
             file as follows:
-
               token = abc123
         """))
         sys.exit(1)
@@ -76,12 +71,10 @@ def get_token():
 
 def pr(num):
     """Pulls down and checkout the branch of the pr.
-
     This will run the following commands in the terminal:
     "git remote add user git@github.com:user/repo",
     "git fetch user",
     "git checkout -b pr/num user/branch"
-
     Parameters
     ----------
     num : integer
@@ -120,10 +113,8 @@ def pr(num):
 
 def push():
     """Pushes changes back to a branch.
-
     This will run the following command:
     "git push user pr/num:branch"
-
     """
     p = subprocess.Popen(["git", "branch"], stdout=subprocess.PIPE)
     pr = str(p.stdout.read())
@@ -168,7 +159,6 @@ def path_to_toml():
 
 def find_in_dictionary(pr_id, pr_data):
     """Fetches all the information on a certain PR
-
     Parameters
     ----------
     pr_id : integer
@@ -185,7 +175,6 @@ def find_in_dictionary(pr_id, pr_data):
 
 def get_info(pr_data):
     """Fetches all the information on a certain PR
-
     Parameters
     ----------
     pr_data : integer
@@ -235,7 +224,6 @@ def get_info(pr_data):
 def parse_time(time):
     """
     Converts time into python datetime object
-
     Parameters
     ----------
     time : String
@@ -257,7 +245,6 @@ def parse_time(time):
 def print_in_order(dict, increasing=False):
     """
     Prints items in q sorted by order given by sort
-
     Parameters
     ----------
     Q : PriorityQueue
@@ -279,7 +266,6 @@ def find_match(open_or_closed, list_of_dictionaries,
                keyword, user, comment, number, branch, label):
     """Helper function that finds all matches in the
        given dictionary that fits the specified parameters.
-
     Parameters
     ----------
     open_or_closed : boolean
@@ -296,7 +282,6 @@ def find_match(open_or_closed, list_of_dictionaries,
         Search by PR number
     branch : string
         Search by PR branch
-
     Returns
     ----------
     appeared_before : boolean
@@ -350,9 +335,7 @@ def find_match(open_or_closed, list_of_dictionaries,
 def search(keyword, user, comment, number,
            branch, opened_or_closed, label, sort):
     """Searches open and closed pull request comments for specified keyword.
-
     Opens pull-requests.toml file in .git folder to fetch pull requests.
-
     Parameters
     ----------
     keyword : string
@@ -395,16 +378,17 @@ def search(keyword, user, comment, number,
                    f"pull requests with 'git hub sync' and try again.")
 
 
-def find_pr_info(pr, repo, token, open_or_closed):
+def find_pr_info(username, repo, pr, token, open_or_closed):
     """Helper function that finds all the information we want to record from the
     pull requests from the API and converts it to toml format syntax
-
     Parameters
     ----------
+    username : string
+        username created of PR
+    repo : string
+        repo user created PR from
     pr : object
         PR dictionary
-    repo : object
-        github object of the repo
     token : string
         authentication token for user
     open_or_closed : string
@@ -462,15 +446,19 @@ def find_pr_info(pr, repo, token, open_or_closed):
     """
     return textwrap.dedent(to_write)
 
-def find_issue_info(issue, token):
+
+def find_issue_info(username, repo, issue, token):
     """Helper function that finds all the information
        we want to record from the issues
        from the API and converts it to toml format syntax.
-
     Parameters
     ----------
-    issue : object
-        github object that is an issue
+    username : string
+        username created of PR
+    repo : string
+        repo user created PR from
+    pr : object
+        PR dictionary
     token : string
         authentication token for user
     """
@@ -501,6 +489,7 @@ def find_issue_info(issue, token):
     """
     return textwrap.dedent(to_write)
 
+
 def sync():
     """Updates and saves pull-requests
        in pull-requests.toml in the .git folder.
@@ -524,21 +513,20 @@ def sync():
         sys.exit(1)
 
     # creates dictionaries in toml format as we scan though pull requests
-    github_repo = g.get_user(username).get_repo(repo)
     open_prs = g.get_user(username).get_repo(repo).get_pulls("open")
     for pr in open_prs:
-        to_write = to_write + find_pr_info(pr, github_repo, token, "open")
+        to_write = to_write + find_pr_info(username, repo, pr, token, "open")
     to_write = to_write[:-1]+'\n'
     to_write = to_write + "['closed pull requests'] \n"
     closed_prs = g.get_user(username).get_repo(repo).get_pulls("closed")
     for pr in closed_prs:
-        to_write = to_write + find_pr_info(pr, github_repo, token, "closed")
+        to_write = to_write + find_pr_info(username, repo, pr, token, "closed")
 
     issues = g.get_user(username).get_repo(repo).get_issues()
     to_write = to_write + "['issues'] \n"
     for issue in issues:
         if f"pull requests'.{issue.number}" not in to_write:
-            to_write = to_write + find_issue_info(issue, token)
+            to_write = to_write + find_issue_info(username, repo, issue, token)
     # converts it to toml and stores in file
     toml_string = toml.loads(to_write)
     toml.dump(toml_string, f)
@@ -548,7 +536,8 @@ def render():
     try:
         plot_pr.execute()
     except ImportError:
-        print("Matplotlib not installed, cannot render image. Continuing without image.")
+        print("Matplotlib not installed, cannot render image.")
+        print("Continuing without image.")
     app.main()
 
 
