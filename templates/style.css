@@ -1,0 +1,55 @@
+body {
+    margin: 0px;
+    padding: 0px;
+    overflow-x: hidden;
+}
+.container {
+  padding-bottom: 20px;
+  text-align: left;
+}
+.picture {
+  padding-bottom: 20px;
+  text-align: left;
+}
+#center-header{
+  text-align: left;
+  padding-top: 10px;
+}
+#description{
+  text-align: left;
+  font-style: italic;
+  color: gray;
+}
+.footer{
+  padding-top: 100px;
+}
+ul {
+  list-style-type: none;
+}
+.container:hover{
+  box-shadow: 0 2px 10px 0 rgba(0, 0, 0, 0.2), 0 6px 15px 0 rgba(0, 0, 0, 0.19);
+}
+#week-old-div{
+  display: none;
+}
+#no-diss-div{
+  display: none;
+}
+#active-prs-div{
+  display: none;
+}
+#oldest-prs-div{
+  display: none;
+}
+#my-prs-div{
+  display: none;
+}
+#unmergeable-div{
+  display: none;
+}
+#pop-tickets-div{
+  display: none;
+}
+#refer-div{
+  display: none;
+}

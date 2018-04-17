@@ -6,6 +6,8 @@ import click
 import sys
 import textwrap
 import toml
+import app
+import plot_pr
 import os
 from datetime import datetime
 from os.path import join as pjoin
@@ -521,6 +523,14 @@ def sync():
     toml.dump(toml_string, f)
 
 
+def render():
+    try:
+        plot_pr.execute()
+    except ImportError:
+        print("Matplotlib not installed, cannot render image. Continuing without image.")
+    app.main()
+
+
 @click.group()
 def cli():
     pass
@@ -558,6 +568,9 @@ def hub(command, args, user, comment, number, branch, sort, opened, label):
     elif command == "info":
         pr_num = int(args[0])
         get_info(pr_num)
+
+    elif command == "render":
+        render()
 
     else:
         print("invalid command")

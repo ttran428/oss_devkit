@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>PRs without recent comments</title>
+    <link rel="stylesheet" type="text/css" href="{{style}}">
+	  <script language="JavaScript" type="text/javascript" src="{{script}}"></script>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link href="http://netdna.bootstrapcdn.com/bootstrap/3.0.0/css/bootstrap.min.css" rel="stylesheet" media="screen">
+  </head>
+  <body>
+    {% if picture %}
+    <div class="picture">
+       <img src="{{picture}}" style="width:500px;height:400px;display:block;margin-left:auto;margin-right:auto;">
+    </div>
+    {% endif %}
+    <div class="container" onclick="btn_click('week-old-div');">
+        <h3 id="center-header"> All PRs without comments in over a week: </h3>
+        <h5 id="description"> All open PRs that have not been commented on by anybody in over a week. </h5>
+      <ul id="week-old-div">
+        {% for n in range(week_old|length) %}
+          <li><a href={{week_old_url[n]}} target="_blank">{{week_old[n]}}</a></li>
+        {% endfor %}
+      </ul>
+    </div>
+
+    <div class="container" onclick="btn_click('no-diss-div');">
+        <h3 id="center-header"> All PRs without discussion: </h3>
+        <h5 id="description"> All open PRs that haven't been commented on by anybody before. </h5>
+      <ul id="no-diss-div">
+        {% for n in range(no_discussion|length) %}
+          <li><a href={{no_discussion_url[n]}} target="_blank">{{no_discussion[n]}}</a></li>
+        {% endfor %}
+      </ul>
+    </div>
+
+    <div class="container" onclick="btn_click('active-prs-div');">
+        <h3 id="center-header"> PRs with most active comments: </h3>
+        <h5 id="description"> Finds the top 3 PRs with the most comments by anybody. </h5>
+      <ul id="active-prs-div">
+        {% for n in range(active_prs|length) %}
+          <li><a href={{active_prs_url[n]}} target="_blank">{{active_prs[n]}}</a></li>
+        {% endfor %}
+      </ul>
+    </div>
+
+    <div class="container" onclick="btn_click('oldest-prs-div');">
+        <h3 id="center-header"> Oldest unmerged PRs: </h3>
+        <h5 id="description"> Finds the 3 oldest PRs that haven't been merged, sorted by date. </h5>
+      <ul id="oldest-prs-div">
+        {% for n in range(oldest_prs|length) %}
+          <li><a href={{oldest_prs_url[n]}} target="_blank">{{oldest_prs[n]}}</a></li>
+        {% endfor %}
+      </ul>
+    </div>
+
+    <div class="container" onclick="btn_click('my-prs-div');">
+        <h3 id="center-header"> All PRs that I've commented on: </h3>
+        <h5 id="description"> Lists all PRs that the current user has commented on. </h5>
+      <ul id="my-prs-div">
+        {% for n in range(my_prs|length) %}
+          <li><a href={{my_prs[n]}} target="_blank">{{my_prs[n]}}</a></li>
+        {% endfor %}
+      </ul>
+    </div>
+
+    <div class="container" onclick="btn_click('unmergeable-div');">
+        <h3 id="center-header"> All unmergeable PRs: </h3>
+        <h5 id="description"> Lists all PRs that have merge conflicts and need to be manually merged. </h5>
+      <ul id="unmergeable-div">
+        {% if unmergeable_prs %}
+          {% for n in range(unmergeable_prs|length) %}
+            <li><a href={{unmergeable_prs_url[n]}} target="_blank">{{unmergeable_prs[n]}}</a></li>
+          {% endfor %}
+        {% endif %}
+      </ul>
+    </div>
+
+    <div class="container" onclick="btn_click('pop-ticket-div');">
+        <h3 id="center-header"> Most popular tickets: </h3>
+        <h5 id="description"> List of top 3 tickets with the most comment activity.  </h5>
+      <ul id="pop-ticket-div">
+        {% if popular_tickets %}
+          {% for n in range(popular_tickets|length) %}
+            <li><a href={{popular_tickets_url[n]}} target="_blank">{{popular_tickets[n]}}</a></li>
+          {% endfor %}
+        {% endif %}
+      </ul>
+    </div>
+
+    <div class="container" onclick="btn_click('refer-div');">
+        <h3 id="center-header"> Most referred tickets: </h3>
+        <h5 id="description"> Finds open issues that are referred to from closed PRs. </h5>
+      <ul id="refer-div">
+        {% if closed_pr_refer_tickets %}
+          {% for n in range(closed_pr_refer_tickets|length) %}
+            <li><a href={{closed_pr_refer_tickets_url[n]}} target="_blank">{{closed_pr_refer_tickets[n]}}</a></li>
+          {% endfor %}
+        {% endif %}
+      </ul>
+    </div>
+
+    <div class="footer"></div>
+    <script src="http://code.jquery.com/jquery-1.10.2.min.js"></script>
+    <script src="http://netdna.bootstrapcdn.com/bootstrap/3.0.0/js/bootstrap.min.js"></script>
+  </body>
+</html>
