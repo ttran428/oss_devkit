@@ -563,7 +563,7 @@ def hub(command, args, user, comment, number, branch, sort, opened, label):
         if args[0].isdigit():
             pr_num = int(args[0])
         else:
-            pr_num = int(args[0][-1])
+            pr_num = int(args[0].split('/')[-1])
         pr(pr_num)
 
     elif command == "push":
