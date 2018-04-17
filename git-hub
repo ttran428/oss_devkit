@@ -500,36 +500,74 @@ def sync():
     # saves pr into toml file
     try:
         g = github.Github(token)
-        path_git = path_to_git()
-        path_github = pjoin(path_git, 'git-hub')
-        path_prs = path_to_toml()
-        if not os.path.isdir(path_github):
-            os.makedirs(path_github)
-        f = open(path_prs, "w")
-        to_write = "['open pull requests']\n"
+
     except github.BadCredentialsException as e:
         print(e)
         click.echo("The authentification token is not valid.")
         sys.exit(1)
-
+    try:
+        path_git = path_to_git()
+        path_github = pjoin(path_git, 'git-hub')
+        path_prs = path_to_toml()
+        f = open(path_prs, "r")
+        pr_dict = toml.load(f) 
+        if not pr_dict:
+            sync_first(f,g, username, repo, token)
+        else:
+            print('already synced before')
+            resync(f,g, username, repo, token, pr_dict)
+        
+    except FileNotFoundError as e:
+        print("haven't synced before")
+        if not os.path.isdir(path_github):
+            os.makedirs(path_github)
+        f = open(path_prs, "w")
+        sync_first(f,g, username, repo, token)
     # creates dictionaries in toml format as we scan though pull requests
+
+
+def sync_first(f, g, username, repo, token):
+    to_write = "['open pull requests']\n"
     open_prs = g.get_user(username).get_repo(repo).get_pulls("open")
     for pr in open_prs:
-        to_write = to_write + find_pr_info(username, repo, pr, token, "open")
+        if g.rate_limiting[0] / g.rate_limiting[1] > .8:
+            to_write = to_write + find_pr_info(username, repo, pr, token, "open")
+        else:
+            print("Over 80 percent of api calls used. Sync later to get rest of the info.")
+            toml_string = toml.loads(to_write)
+            toml.dump(toml_string, f)
+            return 
     to_write = to_write[:-1]+'\n'
     to_write = to_write + "['closed pull requests'] \n"
     closed_prs = g.get_user(username).get_repo(repo).get_pulls("closed")
     for pr in closed_prs:
-        to_write = to_write + find_pr_info(username, repo, pr, token, "closed")
-
+        if g.rate_limiting[0] / g.rate_limiting[1] > .8:
+            to_write = to_write + find_pr_info(username, repo, pr, token, "closed")
+        else:
+            print("Over 80 percent of api calls used. Sync later to get rest of the info.")
+            toml_string = toml.loads(to_write)
+            toml.dump(toml_string, f)
     issues = g.get_user(username).get_repo(repo).get_issues()
     to_write = to_write + "['issues'] \n"
     for issue in issues:
+        if g.rate_limiting[0] / g.rate_limiting[1] <= .8:
+            print("Over 80 percent of api calls used. Sync later to get rest of the info.")
+            toml_string = toml.loads(to_write)
+            toml.dump(toml_string, f)
+            return
         if f"pull requests'.{issue.number}" not in to_write:
             to_write = to_write + find_issue_info(username, repo, issue, token)
     # converts it to toml and stores in file
     toml_string = toml.loads(to_write)
     toml.dump(toml_string, f)
+
+def resync(f,g, username, repo, token, pr_dict):
+    open_prs = g.get_user(username).get_repo(repo).get_pulls("open", sort="updated")
+    for pr in open_prs:
+        if pr.updated_at > pr_dict['open']:
+            return
+
+
 
 
 def render():
