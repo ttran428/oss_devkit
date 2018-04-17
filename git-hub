@@ -511,7 +511,11 @@ def sync():
         path_prs = path_to_toml()
         f = open(path_prs, "r")
         pr_dict = toml.load(f) 
+        print(pr_dict)
         if not pr_dict:
+            if not os.path.isdir(path_github):
+                os.makedirs(path_github)
+            f = open(path_prs, "w")
             sync_first(f,g, username, repo, token)
         else:
             print('already synced before')
