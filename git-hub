@@ -7,6 +7,8 @@ import sys
 import textwrap
 import json
 import toml
+import app
+import plot_pr
 import os
 from datetime import datetime
 from urllib.request import urlopen, Request
@@ -439,6 +441,7 @@ def find_pr_info(username, repo, pr, token, open_or_closed):
     to_write = f"""
     ['{open_or_closed} pull requests'.{pr.number}]\n
     title = "{repr(response.get('title'))}" \n
+    url = "{response.get('html_url')}"\n
     body = "{repr(response.get('body'))}" \n
     user = "{pr.user.login}" \n
     branch = "{response.get('head').get('ref')}" \n
@@ -495,6 +498,7 @@ def find_issue_info(username, repo, issue, token):
     to_write = f"""
     ['issues'.{issue.number}]\n
     title = "{response.get('title')}"\n
+    url = "{response.get('html_url')}"\n
     number = "{response.get('number')}"\n
     body = '''{repr(response.get('body'))}'''\n
     self_comment = "{any([c.get('user').get('login') == username
@@ -549,6 +553,14 @@ def sync():
     toml.dump(toml_string, f)
 
 
+def render():
+    try:
+        plot_pr.execute()
+    except ImportError:
+        print("Matplotlib not installed, cannot render image. Continuing without image.")
+    app.main()
+
+
 @click.group()
 def cli():
     pass
@@ -586,6 +598,9 @@ def hub(command, args, user, comment, number, branch, sort, opened, label):
     elif command == "info":
         pr_num = int(args[0])
         get_info(pr_num)
+
+    elif command == "render":
+        render()
 
     else:
         print("invalid command")
