@@ -3,11 +3,17 @@ Command Line Functions
 
 git hub pr
 ----------
-Pulls down and checkout the branch of the pull request. For example, the command
+Pulls down and checkout the branch of the pull request. It takes in either the url of the pull request or the pull request number. For example, the command
 
 ::
 
   git hub pr 42
+
+or 
+
+::
+
+  git hub https://github.com/user/repo/pull/42
 
 is equivalent to these commands at the terminal:
 	
@@ -15,7 +21,7 @@ is equivalent to these commands at the terminal:
 
   git remote add user git@github.com:user/repo
   git fetch user
-  git checkout -b pr/num user/branch
+  git checkout -b pr/42 user/branch
 
 git hub push
 ------------
