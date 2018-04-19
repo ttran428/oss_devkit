@@ -17,6 +17,7 @@
         <h3 id="center-header"> All PRs without comments in over a week: </h3>
         <h5 id="description"> All open PRs that have not been commented on by anybody in over a week. </h5>
       <ul id="week-old-div">
+        {{week_old_url}}
         {% for n in range(week_old|length) %}
           <li><a href={{week_old_url[n]}} target="_blank">{{week_old[n]}}</a></li>
         {% endfor %}

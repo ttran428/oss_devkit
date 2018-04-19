@@ -73,7 +73,6 @@ def get_token():
         """))
         sys.exit(1)
 
-
 def pr(num):
     """Pulls down and checkout the branch of the pr.
 
@@ -99,7 +98,7 @@ def pr(num):
         remote_name = "\\n" + other_user + "\\t"
         if remote_name not in remotes:
             p = subprocess.Popen(["git", "remote", "add", other_user,
-                                  f'git@github.com:{other_user}/{repo}'])
+                                 f'git@github.com:{other_user}/{repo}'])
             p.communicate()
         p = subprocess.Popen(["git", "fetch", other_user],
                              stdout=subprocess.PIPE)
@@ -176,9 +175,9 @@ def find_in_dictionary(pr_id, pr_data):
     pr_data : dictionary
         dictionary of open or closed PRs to find pr_id in
     """
-    if(pr_data is not None):
+    if (pr_data is not None):
         for pr_nr in pr_data:
-            if(pr_nr == str(pr_id)):
+            if (pr_nr == str(pr_id)):
                 return pr_nr, pr_data[pr_nr]
     return None, None
 
@@ -204,10 +203,10 @@ def get_info(pr_data):
 
     open_PR = "O"
     key, pr_dictionary = find_in_dictionary(pr_data, open_dict)
-    if(pr_dictionary is None):
+    if (pr_dictionary is None):
         open_PR = "C"
         key, pr_dictionary = find_in_dictionary(pr_data, closed_dict)
-    if(pr_dictionary is None):
+    if (pr_dictionary is None):
         click.echo(f"Could not find PR #{pr_data}."
                    "Run 'git hub sync' and try again.")
     else:
@@ -221,14 +220,14 @@ def get_info(pr_data):
         comment_count = pr_dictionary.get('comment_count', 'None')
         created_at = pr_dictionary.get('created_at', 'None')
         updated_at = pr_dictionary.get('updated_at', 'None')
-        click.echo(f'{key} {ansi.GREEN} {open_PR} {ansi.CLOSE}'
-                   f'{pr_dictionary["user"]}/{pr_dictionary["branch"]}'
-                   f' {pr_dictionary["comment"]}')
-        click.echo(f'-Created at: {created_at}  -Updated at: {updated_at}')
-        click.echo(f'-Commits: {commits}  -Comment count: {comment_count}'
-                   f'-Most recent comment: {most_recent_comment}')
-        click.echo(f'-Labels: {labels}  -Reviewers: {reviewers}'
-                   f'-Branch: {branch}  -Assignees: {assignee}'
+        click.echo(f'{key} {ansi.GREEN} {open_PR} {ansi.CLOSE}  '
+                   f'{pr_dictionary["user"]}/{pr_dictionary["branch"]}  '
+                   f' {pr_dictionary["comment"]}  ')
+        click.echo(f'-Created at: {created_at}  -Updated at: {updated_at}  ')
+        click.echo(f'-Commits: {commits}  -Comment count: {comment_count}  '
+                   f'-Most recent comment: {most_recent_comment}  ')
+        click.echo(f'-Labels: {labels}  -Reviewers: {reviewers}  '
+                   f'-Branch: {branch}  -Assignees: {assignee}  '
                    f'-Milestones: {milestone}')
 
 
@@ -265,7 +264,7 @@ def print_in_order(dict, increasing=False):
     inreasing : boolean
         tells if the user wants dates in order of most recent first
     """
-    if(increasing):
+    if (increasing):
         sorted_list = sorted(dict)
         for x in sorted_list:
             click.echo(f"{dict[x]} : {x[:10]}")
@@ -381,11 +380,11 @@ def search(keyword, user, comment, number,
 
     open_dict = pr_dict['open pull requests']
     closed_dict = pr_dict['closed pull requests']
-    if(not opened_or_closed or opened_or_closed.lower() == 'open'):
+    if (not opened_or_closed or opened_or_closed.lower() == 'open'):
         open_prs, q = find_match(True, open_dict, keyword,
                                  user, comment, number, branch, label)
         print_in_order(q, sort.startswith('i'))
-    if(not opened_or_closed or opened_or_closed.lower() == 'closed'):
+    if (not opened_or_closed or opened_or_closed.lower() == 'closed'):
         closed_prs, q = find_match(False, closed_dict, keyword,
                                    user, comment, number, branch, label)
         print_in_order(q, sort.startswith('i'))
@@ -539,7 +538,7 @@ def cli():
 @cli.command()
 @click.argument("command", default="")
 @click.argument("args", nargs=-1)
-@click.option('--opened', '-o', default="",
+@click.option('--open', '-o', default="",
               help="search by open or closed PRs")
 @click.option('--user', '-u', default="", help="search by user")
 @click.option('--branch', '-b', default="", help="search by branch")
@@ -548,7 +547,7 @@ def cli():
 @click.option('--sort', '-s', default="",
               help="sort PRs by increasing or decreasing date")
 @click.option('--label', '-l', default="", help="search PR by label")
-def hub(command, args, user, comment, number, branch, sort, opened, label):
+def hub(command, args, user, comment, number, branch, sort, open, label):
     if command == "pr":
         pr_num = int(args[0])
         pr(pr_num)
@@ -557,7 +556,7 @@ def hub(command, args, user, comment, number, branch, sort, opened, label):
         push()
 
     elif command == "search":
-        if(not args):
+        if (not args):
             search(None, user, comment, number, branch, opened, label, sort)
         else:
             search(" ".join(args), user, comment,

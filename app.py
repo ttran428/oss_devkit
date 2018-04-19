@@ -50,6 +50,7 @@ def week_old_comments_helper(prs):
         pr = prs[num]
         if(pr['most_recent'] == ""):
             all_prs.append(f'PR #{num}: {pr["user"]}/{pr["branch"]}: {pr["comment"]}')
+            url.append(pr["url"])
         else:
             comment_time = parse_time(pr['most_recent'])
             if((datetime.now() - comment_time).days > 7):
@@ -377,9 +378,8 @@ def main():
 
     path_git = path_to_git()
     path_pic = path_pic = pjoin(path_git, "git-hub/PRs.png")
-    if os.path.exists(path_pic):
-        return path_pic
-    return None
+    if not os.path.exists(path_pic):
+        path_pic = None
 
     file_path = os.path.dirname(__file__)
     complete_path = os.path.join(file_path, 'templates/template.html')
@@ -388,7 +388,7 @@ def main():
     path, filename = os.path.split(complete_path)
     env = jinja2.Environment(loader=jinja2.FileSystemLoader(path or './'))
     template = env.get_template(filename)
-    out = template.render({'style': style, 'script': script, 'picture': picture, 'issues_no_comments': issues_no_comments, 'closed_pr_refer_tickets': closed_pr_refer_tickets, 'popular_tickets': popular_tickets, 'week_old': week_old, 'no_discussion': no_discussion, 'active_prs': most_active, 'oldest_prs': oldest_pr, 'my_prs': my_prs, 'unmergeable_prs': unmergeable_prs,
+    out = template.render({'style': style, 'script': script, 'picture': path_pic, 'issues_no_comments': issues_no_comments, 'closed_pr_refer_tickets': closed_pr_refer_tickets, 'popular_tickets': popular_tickets, 'week_old': week_old, 'no_discussion': no_discussion, 'active_prs': most_active, 'oldest_prs': oldest_pr, 'my_prs': my_prs, 'unmergeable_prs': unmergeable_prs,
      'issues_no_comments_url': issues_no_comments_url, 'closed_pr_refer_tickets_url': closed_pr_refer_tickets_url, 'popular_tickets_url': popular_tickets_url, 'week_old_url': week_old_url, 'no_discussion_url': no_discussion_url, 'active_prs_url': most_active_url, 'oldest_prs_url': oldest_pr_url, 'my_prs_url': my_prs_url, 'unmergeable_prs_url': unmergeable_prs_url})
     fname = "./output.html"
     print("Template rendered at output.html")
