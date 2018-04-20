@@ -86,7 +86,7 @@ def pr(num):
     num : integer
         The number of the pull request.
     """
-    username, repo, remotes = login()
+    username, repo = login()
     token = get_token()
 
     # gets pr and runs command.
@@ -95,6 +95,8 @@ def pr(num):
         pr = g.get_user(username).get_repo(repo).get_pull(num)
         label = pr.head.label
         other_user, branch = label.split(":")
+        process = subprocess.Popen(["git", "remote", "-v"], stdout=subprocess.PIPE)
+        remotes = str(process.stdout.read())
         remote_name = "\\n" + other_user + "\\t"
         if remote_name not in remotes:
             p = subprocess.Popen(["git", "remote", "add", other_user,
@@ -410,15 +412,30 @@ def find_pr_info(pr, repo, token, open_or_closed):
         if the PR is open or closed
     """
     to_write = ""
-    comment_dict = pr.get_comments()
-    labels_dict = repo.get_issue(pr.number).labels
-    reviews = [reviewer.user for reviewer in
-               list(pr.get_review_comments())]
-    assignees = [assignee.login
-                 for assignee in list(pr.assignees)]
-    labels = [label.name for label in list(labels_dict)]
-    comment_dates = [c.updated_at for c in list(comment_dict)]
+    url = f'https://api.github.com/repos/{username}/{repo}/pulls/{pr.number}'
+    request = Request(url)
+    request.add_header('Authorization', 'token %s' % token)
+    response = urlopen(request)
+    response = json.loads(response.read().decode('utf-8'))
+    issue_url = response.get('issue_url')
+    labels = ""
+    issue_request = Request(issue_url)
+    issue_response = urlopen(issue_request)
+    issue_response = json.loads(issue_response.read().decode('utf-8'))
+    labels_dict = issue_response.get('labels')
+    comment_url = response.get('comments_url')
+    comment_request = Request(comment_url)
+    comment_response = urlopen(comment_request)
+    comment_dict = json.loads(comment_response.read().decode('utf-8'))
 
+    reviews = [reviewer.get('login') for reviewer in
+               list(response.get('requested_reviewers'))]
+    assignees = [assignee.get('login')
+                 for assignee in list(response.get('assignees'))]
+    labels = [label.get('name') for label in list(labels_dict)]
+    comment_dates = [c.get('updated_at') for c in list(comment_dict)]
+    if(pr.number % 5 == 0):
+        print("Syncing PR ", pr.number)
     to_write = f"""
     ['{open_or_closed} pull requests'.{pr.number}]\n
     title = "{repr(pr.title)}" \n
@@ -530,6 +547,14 @@ def render():
     app.main()
 
 
+def find_path_to_git():
+    path_repo = os.path.abspath('.')
+    while os.path.abspath(path_repo) != '/' and not os.path.isdir(pjoin(path_repo, '.git')):  # if not in directory with .git, keep going back to find file
+        path_repo = pjoin(path_repo, '..')
+    path_git = pjoin(path_repo, ".git")
+    return path_git
+
+
 @click.group()
 def cli():
     pass
@@ -570,6 +595,9 @@ def hub(command, args, user, comment, number, branch, sort, open, label):
 
     elif command == "render":
         render()
+
+    elif command == "checkout":
+        checkout(str(args[0]))
 
     else:
         print("invalid command")

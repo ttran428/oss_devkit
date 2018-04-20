@@ -41,13 +41,14 @@ def week_old_comments():
     return opened, url
 
 
-def week_old_comments_helper(prs):
+def week_old_comments_helper(multiple_prs):
     """Helper function that finds all PRs in a dictionary that are over a week old
     """
     all_prs = []
     url = []
-    for num in list(prs.keys()):
-        pr = prs[num]
+    for prs in multiple_prs:
+        pr = multiple_prs[prs]
+        num = prs
         if(pr['most_recent'] == ""):
             all_prs.append(f'PR #{num}: {pr["user"]}/{pr["branch"]}: {pr["comment"]}')
             url.append(pr["url"])
@@ -93,15 +94,16 @@ def oldest_prs():
     return oldest, url
 
 
-def oldest_prs_helper(prs):
+def oldest_prs_helper(multiple_prs):
     """Helper function that finds oldest prs"""
     oldest = []
     url = []
     q = PriorityQueue(maxsize=3)
     old = timedelta()
     now = datetime.now()
-    for pr_num in list(prs.keys()):
-        pr = prs[pr_num]
+    for prs in multiple_prs:
+        pr = multiple_prs[prs]
+        num = prs
         if now-parse_time(pr['created_at']) > old:
             if q.qsize() == 3:
                 q.get()
@@ -109,8 +111,8 @@ def oldest_prs_helper(prs):
             old = q.get()
             q.put(old)
 
-    for pr_num in list(prs.keys()):
-        pr = prs[pr_num]
+    for pr_num in list(multiple_prs.keys()):
+        pr = multiple_prs[pr_num]
         if now-parse_time(pr['created_at']) > old:
             days = str(now-parse_time(pr['created_at']))[:8]
             oldest.append(f'PR #{pr_num}: {pr["user"]}/{pr["branch"]}: {pr["title"]} --  {days}')
@@ -131,13 +133,14 @@ def most_active_prs():
     return most_popular, url
 
 
-def most_active_prs_helper(prs):
+def most_active_prs_helper(multiple_prs):
     """helper function to find pull requests."""
     popular = []
     url = []
     q = PriorityQueue()
-    for pr_num in list(prs.keys()):
-        pr = prs[pr_num]
+    for prs in multiple_prs:
+        pr = multiple_prs[prs]
+        num = prs
         recent_comment_count = recent_comments(pr)
         q.put(-recent_comment_count)
 
@@ -147,8 +150,8 @@ def most_active_prs_helper(prs):
         most_comments.add(-q.get())
         count += 1
     most_comments.discard(0)
-    for pr_num in list(prs.keys()):
-        pr = prs[pr_num]
+    for pr_num in list(multiple_prs.keys()):
+        pr = multiple_prs[pr_num]
         recent_comment_count = recent_comments(pr)
         if recent_comment_count in most_comments:
             popular.append(f'PR #{pr_num}: {pr["user"]}/{pr["branch"]}: {pr["title"]} -- {recent_comment_count} comment(s)')
@@ -180,14 +183,15 @@ def no_discussion_prs():
     return opened, url
 
 
-def no_discussion_helper(prs):
+def no_discussion_helper(multiple_prs):
     """helper function to find pull requests."""
     no_disc_prs = []
     url = []
-    for pr_num in list(prs.keys()):
-        pr = prs[pr_num]
+    for prs in multiple_prs:
+        pr = multiple_prs[prs]
+        num = prs
         if pr['comment_count'] == "0":
-            no_disc_prs.append(f'PR #{pr_num}: {pr["user"]}/{pr["branch"]}: {pr["title"]}')
+            no_disc_prs.append(f'PR #{num}: {pr["user"]}/{pr["branch"]}: {pr["title"]}')
             url.append(pr["url"])
     return no_disc_prs, url
 
@@ -205,14 +209,15 @@ def prs_with_me():
     return opened, url
 
 
-def find_prs_with_me(prs):
+def find_prs_with_me(multiple_prs):
     """helper function to find pull requests."""
     prs_with_me = []
     url = []
-    for pr_num in list(prs.keys()):
-        pr = prs[pr_num]
+    for prs in multiple_prs:
+        pr = multiple_prs[prs]
+        num = prs
         if pr['self_comment'] == "True":
-            prs_with_me.append(f'PR #{pr_num}: {pr["user"]}/{pr["branch"]}: {pr["title"]}')
+            prs_with_me.append(f'PR #{num}: {pr["user"]}/{pr["branch"]}: {pr["title"]}')
             url.append(pr["url"])
     return prs_with_me, url
 
@@ -230,14 +235,15 @@ def unmergeable():
     return opened, url
 
 
-def find_unmergeable_prs(prs):
+def find_unmergeable_prs(multiple_prs):
     """helper function to find pull requests."""
     unmergeable_prs = []
     url = []
-    for pr_num in list(prs.keys()):
-        pr = prs[pr_num]
+    for prs in multiple_prs:
+        pr = multiple_prs[prs]
+        num = prs
         if pr['mergeable'] == "False":
-            unmergeable_prs.append(f'PR #{pr_num}: {pr["user"]}/{pr["branch"]}: {pr["title"]}')
+            unmergeable_prs.append(f'PR #{num}: {pr["user"]}/{pr["branch"]}: {pr["title"]}')
             url.append(pr["url"])
     return unmergeable_prs, url
 
@@ -328,20 +334,13 @@ def popular_ticket():
     return popular, urls
 
 
-def find_popular_tickets(opened, issues):
+def find_popular_tickets(multiple_prs, issues):
     """helper function to find popular tickets"""
     tickets = {}
-    for num in opened:
-        pr = opened[num]
+    for prs in multiple_prs:
+        pr = multiple_prs[prs]
+        num = prs
         referred_tickets_in_prs = tickets_referred(pr['comment_content'])
-        for ticket in referred_tickets_in_prs:
-            if ticket in tickets:
-                tickets[ticket] += 1
-            else:
-                tickets[ticket] = 1
-    for num in issues:
-        issue = issues[num]
-        referred_tickets_in_tickets = tickets_referred(issue['comment_body'])
         for ticket in referred_tickets_in_prs:
             if ticket in tickets:
                 tickets[ticket] += 1
@@ -377,19 +376,21 @@ def main():
     popular_tickets, popular_tickets_url = popular_ticket()
 
     path_git = path_to_git()
-    path_pic = path_pic = pjoin(path_git, "git-hub/PRs.png")
-    if not os.path.exists(path_pic):
-        path_pic = None
+    picture = pjoin(path_git, "git-hub/PRs.png")
+    if not os.path.exists(picture):
+        picture = None
 
     file_path = os.path.dirname(__file__)
     complete_path = os.path.join(file_path, 'templates/template.html')
     style = os.path.join(file_path, 'templates/style.css')
     script = os.path.join(file_path, 'templates/script.js')
+    down = os.path.join(file_path, 'templates/down.png')
+    right = os.path.join(file_path, 'templates/right.png')
     path, filename = os.path.split(complete_path)
     env = jinja2.Environment(loader=jinja2.FileSystemLoader(path or './'))
     template = env.get_template(filename)
-    out = template.render({'style': style, 'script': script, 'picture': path_pic, 'issues_no_comments': issues_no_comments, 'closed_pr_refer_tickets': closed_pr_refer_tickets, 'popular_tickets': popular_tickets, 'week_old': week_old, 'no_discussion': no_discussion, 'active_prs': most_active, 'oldest_prs': oldest_pr, 'my_prs': my_prs, 'unmergeable_prs': unmergeable_prs,
-     'issues_no_comments_url': issues_no_comments_url, 'closed_pr_refer_tickets_url': closed_pr_refer_tickets_url, 'popular_tickets_url': popular_tickets_url, 'week_old_url': week_old_url, 'no_discussion_url': no_discussion_url, 'active_prs_url': most_active_url, 'oldest_prs_url': oldest_pr_url, 'my_prs_url': my_prs_url, 'unmergeable_prs_url': unmergeable_prs_url})
+    out = template.render({'style': style, 'script': script, 'picture': picture, 'issues_no_comments': issues_no_comments, 'closed_pr_refer_tickets': closed_pr_refer_tickets, 'popular_tickets': popular_tickets, 'week_old': week_old, 'no_discussion': no_discussion, 'active_prs': most_active, 'oldest_prs': oldest_pr, 'my_prs': my_prs, 'unmergeable_prs': unmergeable_prs,
+     'issues_no_comments_url': issues_no_comments_url, 'closed_pr_refer_tickets_url': closed_pr_refer_tickets_url, 'popular_tickets_url': popular_tickets_url, 'week_old_url': week_old_url, 'no_discussion_url': no_discussion_url, 'active_prs_url': most_active_url, 'oldest_prs_url': oldest_pr_url, 'my_prs_url': my_prs_url, 'unmergeable_prs_url': unmergeable_prs_url, 'down': down, 'right': right})
     fname = "./output.html"
     print("Template rendered at output.html")
     with open(fname, 'w') as f:
