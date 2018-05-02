@@ -380,91 +380,6 @@ def search(keyword, user, comment, number,
                    f"pull requests with 'git hub sync' and try again.")
 
 
-def find_pr_info(pr, repo, token, open_or_closed):
-    """Helper function that finds all the information we want to record from the
-    pull requests from the API and converts it to toml format syntax
-
-    Parameters
-    ----------
-    pr : object
-        PR dictionary
-    repo : object
-        github object of the repo
-    token : string
-        authentication token for user
-    open_or_closed : string
-        if the PR is open or closed
-    """
-    to_write = ""
-    comment_dict = pr.get_comments()
-    labels_dict = repo.get_issue(pr.number).labels
-    reviews = [reviewer.user for reviewer in
-               list(pr.get_review_comments())]
-    assignees = [assignee.login
-                 for assignee in list(pr.assignees)]
-    labels = [label.name for label in list(labels_dict)]
-    comment_dates = [c.updated_at for c in list(comment_dict)]
-
-    to_write = f"""
-    ['{open_or_closed} pull requests'.{pr.number}]\n
-    title = "{repr(pr.title)}" \n
-    url = "{pr.html_url}" \n
-    body = "{repr(pr.body)}" \n
-    user = "{pr.user.login}" \n
-    branch = "{pr.head.ref}" \n
-    mergeable = "{pr.mergeable}" \n
-    comment = "{repr(pr.title)}" \n
-    commits = "{repr(pr.commits)}" \n
-    modified = "{pr.updated_at}" \n
-    created_at = "{pr.created_at}" \n
-    updated_at = "{pr.updated_at}" \n
-    closed_at = "{pr.closed_at}" \n
-    merged_at = "{pr.merged_at}" \n
-    reviews = {repr(reviews)} \n
-    assignees = {assignees} \n
-    milestone = "{pr.milestone.title if pr.milestone else ""}"\n
-    labels = {labels}\n
-    self_comment = "{any([c.user.login == pr.user.login
-                    for c in list(comment_dict)])}"\n
-    comment_dates = {comment_dates}\n
-    most_recent = '{max(comment_dates) if comment_dates  else ""}'\n
-    comment_content = {repr([c.body for c in list(comment_dict)])}\n
-    comment_count = '{len(list(comment_dict))}'\n
-    """
-    return textwrap.dedent(to_write)
-
-
-def find_issue_info(issue, token):
-    """Helper function that finds all the information
-       we want to record from the issues
-       from the API and converts it to toml format syntax.
-
-    Parameters
-    ----------
-    issue : object
-        github object that is an issue
-    token : string
-        authentication token for user
-    """
-
-    comment_dict = issue.get_comments()
-    comment_dates = [c.updated_at for c in list(comment_dict)]
-    comment_content = [c.body for c in list(comment_dict)]
-    to_write = f"""
-    ['issues'.{issue.number}]\n
-    title = "{issue.title}"\n
-    number = "{issue.number}"\n
-    body = '''{repr(issue.body)}'''\n
-    self_comment = "{any([c.user.login == issue.user.login
-                    for c in list(comment_dict)])}"\n
-    comment_dates = "{comment_dates}"\n
-    updated_at = "{issue.updated_at}" \n
-    most_recent = '{max(comment_dates) if comment_dates  else ""}'\n
-    comment_content = {repr(comment_content)}\n
-    comment_count = '{len(list(comment_dict))}'\n
-    """
-    return textwrap.dedent(to_write)
-
 
 
 def sync():
@@ -505,7 +420,6 @@ def sync():
         f = open(path_prs, "w")
         sync_helper(f,g, username, repo, token, {})
 
-
 def sync_helper(f,g, username, repo, token, pr_dict):
     if not pr_dict:
         pr_dict = {'open pull requests': {}, 'closed pull requests': {}, 
@@ -541,7 +455,6 @@ def sync_helper(f,g, username, repo, token, pr_dict):
             # if updates to open -->remove from closed
             if str(pr.number) in pr_dict['closed pull requests']:
                 pr_dict['closed pull requests'].pop(str(pr.number))
-
         else:
             print("passed updated date: open")
             break
