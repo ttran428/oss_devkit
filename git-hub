@@ -504,8 +504,6 @@ def sync():
             os.makedirs(path_github)
         f = open(path_prs, "w")
         sync_helper(f,g, username, repo, token, {})
-    # creates dictionaries in toml format as we scan though pull requests
-
 
 
 def sync_helper(f,g, username, repo, token, pr_dict):
@@ -519,25 +517,27 @@ def sync_helper(f,g, username, repo, token, pr_dict):
     else:
         last_updated = datetime.strptime(pr_dict['updated info']['last_sync'], "%Y-%m-%d %H:%M:%S.%f")    
         pr_last_synced = pr_dict['updated info']['pr_last_synced']
-        if eval(pr_last_synced):
-            last_issue_date = datetime.strptime(pr_last_synced, "%Y-%m-%d %H:%M:%S.%f")
+        if pr_last_synced:
+            print("didn't get all the info")
+            last_issue_date = datetime.strptime(pr_last_synced, "%Y-%m-%d %H:%M:%S")
         else:
             last_issue_date = None
         last_category = pr_dict['updated info']['category']
 
     github_repo = g.get_user(username).get_repo(repo)
     open_prs = g.get_user(username).get_repo(repo).get_pulls("open", sort="updated",direction="desc")
+    closed_prs = g.get_user(username).get_repo(repo).get_pulls("closed",sort="updated",direction="desc")
+    issues = g.get_user(username).get_repo(repo).get_issues(state="all", sort="updated", direction="desc")
+
     for pr in open_prs:
         if g.rate_limiting[0] / g.rate_limiting[1] < .2:
             print("Over 80 percent of api calls used. Sync later to get rest of the info.")
-            pr_dict['updated info']['last_sync'] = str(datetime.utcnow())
-            pr_dict['updated info']['pr_last_synced'] = str(pr.updated_at)
-            pr_dict['updated info']['category'] = 'open'
+            pr_dict['updated info'] = updated_info(pr.updated_at, "open")
             toml.dump(pr_dict, f)
             return 
         if pr.updated_at > last_updated:
             print("updating new open " + str(pr.number))
-            pr_dict['open pull requests'][str(pr.number)] = sync_pr_info(pr, github_repo)
+            pr_dict['open pull requests'][str(pr.number)] = get_pr_info(pr, github_repo)
             # if updates to open -->remove from closed
             if str(pr.number) in pr_dict['closed pull requests']:
                 pr_dict['closed pull requests'].pop(str(pr.number))
@@ -546,31 +546,25 @@ def sync_helper(f,g, username, repo, token, pr_dict):
             print("passed updated date: open")
             break
 
-    closed_prs = g.get_user(username).get_repo(repo).get_pulls("closed",sort="updated",direction="desc")
     for pr in closed_prs:
         if g.rate_limiting[0] / g.rate_limiting[1] < .2:
             print("Over 80 percent of api calls used. Sync later to get rest of the info.")
-            pr_dict['updated info']['last_sync'] = str(datetime.utcnow())
-            pr_dict['updated info']['pr_last_synced'] = str(pr.updated_at)
-            pr_dict['updated info']['category'] = 'closed'
+            pr_dict['updated info'] = updated_info(pr.updated_at, "closed")
             toml.dump(pr_dict, f)
             return
         if pr.updated_at > last_updated: #newer updated version then pull all info
             print("updating new closed " + str(pr.number))
-            pr_dict['closed pull requests'][str(pr.number)] = sync_pr_info(pr, github_repo)
+            pr_dict['closed pull requests'][str(pr.number)] = get_pr_info(pr, github_repo)
             if str(pr.number) in pr_dict['open pull requests']:
                 pr_dict['open pull requests'].pop(str(pr.number))
         else: 
             print("passed updated_date closed")
             break
 
-    issues = g.get_user(username).get_repo(repo).get_issues(state="all", sort="updated", direction="desc")
     for issue in issues:
         if g.rate_limiting[0] / g.rate_limiting[1] < .2:
             print("Over 80 percent of api calls used. Sync later to get rest of the info.")
-            pr_dict['updated info']['last_sync'] = str(datetime.utcnow())
-            pr_dict['updated info']['pr_last_synced'] = str(pr.updated_at)
-            pr_dict['updated info']['category'] = 'issue'
+            pr_dict['updated info'] = updated_info(issue.updated_at, "issue")
             toml.dump(pr_dict, f)
             return 
         if issue.updated_at <= last_updated:
@@ -578,29 +572,74 @@ def sync_helper(f,g, username, repo, token, pr_dict):
         if (str(issue.number) not in pr_dict['open pull requests'] and 
             str(issue.number) not in pr_dict['closed pull requests'] and 
             issue.state == 'open'):
-            pr_dict['issues'][str(issue.number)] = sync_issue_info(issue)
+            print("updating new issue " + str(issue.number))
+            pr_dict['issues'][str(issue.number)] = get_issue_info(issue)
         if issue.state == 'closed' and str(issue.number) in pr_dict['issues']:
+            print("closed issue")
             pr_dict['issues'].pop(str(issue.number))
 
-    category = pr_dict['updated info']['category']
-    issue_last_updated = pr_dict['updated info']['pr_last_synced']
+    # get prs didn't pull down before
     list_issues = [open_prs, closed_prs, issues]
-    pr_dict, last_updated, category = get_older_info(g, list_issues, category, last_updated, pr_dict)
+    pr_dict = get_older_info(g, github_repo, list_issues, last_category, last_issue_date, pr_dict)
 
-    get_older_info()
-    pr_dict['updated info']['last_sync'] = str(datetime.utcnow())
-    pr_dict['updated info']['pr_last_synced'] = str(None)
-    pr_dict['updated info']['category'] = str(None)
     toml.dump(pr_dict, f)
 
-def get_older_info(g, list_issues, cateogry, updated_at, pr_dict):
+def get_older_info(g, github_repo, list_issues, category, last_issue_date, pr_dict):
+    if not category:
+        pr_dict['updated info'] = updated_info(None, None)
+        return pr_dict
+
     open_prs, closed_prs, issues = list_issues
+
     if category == "open":
-        
-        
+        for pr in open_prs: 
+            if g.rate_limiting[0] / g.rate_limiting[1] < .2:
+                print("Over 80 percent of api calls used. Sync later to get rest of the info.")
+                pr_dict['updated info'] = updated_info(pr.updated_at, "open")
+                return pr_dict
+            if pr.updated_at <= last_issue_date: #date is before last synced pr
+                print("updating old open " + str(pr.number))
+                pr_dict['open pull requests'][str(pr.number)] = get_pr_info(pr, github_repo)
+                # if updates to open -->remove from closed
+                if str(pr.number) in pr_dict['closed pull requests']:
+                    pr_dict['closed pull requests'].pop(str(pr.number)) 
+        category = "closed"
+        last_issue_date = datetime.max
+    
+    if category == "closed":
+        for pr in closed_prs:
+            if g.rate_limiting[0] / g.rate_limiting[1] < .2:
+                print("Over 80 percent of api calls used. Sync later to get rest of the info.")
+                pr_dict['updated info'] = updated_info(pr.updated_at, "closed")
+                return pr_dict
+            if pr.updated_at <= last_issue_date: 
+                print("updating old closed " + str(pr.number))
+                pr_dict['closed pull requests'][str(pr.number)] = get_pr_info(pr, github_repo)
+                if str(pr.number) in pr_dict['open pull requests']:
+                    pr_dict['open pull requests'].pop(str(pr.number))
+        category = "issues"
+        last_issue_date = datetime.max
 
+    if category == "issues":
+        for issue in issues:
+            if g.rate_limiting[0] / g.rate_limiting[1] < .2:
+                print("Over 80 percent of api calls used. Sync later to get rest of the info.")
+                pr_dict['updated info'] = updated_info(issue.updated_at, "issue")
+                return pr_dict
 
-def sync_pr_info(pr, repo):
+            if (issue.updated_at <= last_issue_date and
+                str(issue.number) not in pr_dict['open pull requests'] and 
+                str(issue.number) not in pr_dict['closed pull requests'] and 
+                issue.state == 'open'):
+                print("updating old issue " + str(issue.number))
+                pr_dict['issues'][str(issue.number)] = get_issue_info(issue)
+            if issue.state == 'closed' and str(issue.number) in pr_dict['issues']:
+                pr_dict['issues'].pop(str(issue.number))
+
+    pr_dict['updated info'] = updated_info(None, None)
+    return pr_dict
+
+def get_pr_info(pr, repo):
     '''create a dictionary of info'''
     comment_dict = pr.get_comments()
     comment_dates = [str(c.updated_at) for c in list(comment_dict)]
@@ -608,7 +647,6 @@ def sync_pr_info(pr, repo):
                list(pr.get_review_comments())]
     labels_dict = repo.get_issue(pr.number).labels
     labels = [label.name for label in list(labels_dict)]
-
 
     pr_info = {}
     pr_info['title'] = repr(pr.title)
@@ -633,15 +671,15 @@ def sync_pr_info(pr, repo):
                                    for c in list(comment_dict)])
     pr_info['comment_dates'] = comment_dates
     pr_info['most_recent'] = str(max(comment_dates)) if comment_dates  else ""
-    pr_info['comment_content'] = repr([c.body for c in list(comment_dict)])
+    pr_info['comment_content'] = [repr(c.body) for c in list(comment_dict)]
     pr_info['comment_count'] = len(list(comment_dict))
     return pr_info
     
 
-def sync_issue_info(issue):
+def get_issue_info(issue):
     comment_dict = issue.get_comments()
     comment_dates = [str(c.updated_at) for c in list(comment_dict)]
-    comment_content = [c.body for c in list(comment_dict)]
+    comment_content = [repr(c.body) for c in list(comment_dict)]
 
     issue_info = {}
     issue_info['title'] = issue.title
@@ -652,23 +690,21 @@ def sync_issue_info(issue):
     issue_info['comment_dates'] = comment_dates
     issue_info['updated_at'] = str(issue.updated_at)
     issue_info['most_recent'] = str(max(comment_dates)) if comment_dates  else ""
-    issue_info['comment_content'] = repr(comment_content)
+    issue_info['comment_content'] = comment_content
     issue_info['comment_count'] = len(list(comment_dict))
     return issue_info
 
 
-def updated_info(issue,category):
-    if issue:
-        issue_date = issue.updated_at
+def updated_info(issue_updated_date, category):
+    updated = {}
+    updated['last_sync'] = str(datetime.utcnow())
+    if category:
+        updated['pr_last_synced'] = str(issue_updated_date)
+        updated['category'] = str(category)
     else:
-        issue_date = None
-    updated = f'''
-    ['updated info'] \n
-    last_sync = "{str(datetime.utcnow())}"\n
-    pr_last_synced = "{str(issue_date)}"\n
-    category = "{category}"\n
-    '''
-    return textwrap.dedent(updated)
+        updated['pr_last_synced'] = False
+        updated['category'] = False
+    return updated
 
 def render():
     try:
