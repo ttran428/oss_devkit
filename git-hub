@@ -14,6 +14,7 @@ from datetime import datetime
 from urllib.request import urlopen, Request
 from os.path import join as pjoin
 import ansi
+import re
 
 
 def login():
@@ -560,12 +561,14 @@ def cli():
 @click.option('--label', '-l', default="", help="search PR by label")
 def hub(command, args, user, comment, number, branch, sort, opened, label):
     if command == "pr":
+        print("yes")
         # if user inputs the pull request number
         if args[0].isdigit():
             pr_num = int(args[0])
         # if user inputs the url of the pull request
         else:
-            pr_num = int(args[0].split('/')[-1])
+            mo = re.search(r'https://github.com/(?P<org_name>.*)/(?P<repo>.*)/pull/(?P<pr_num>\d*)(/*)', args[0])
+            pr_num = int((mo.group('pr_num')))
         pr(pr_num)
 
     elif command == "push":
